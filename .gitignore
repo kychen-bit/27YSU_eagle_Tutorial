@@ -1,0 +1,24 @@
+# ============ 构建产物 ============
+# CMake 生成的构建目录（每个项目编译后都会生成，不该提交）
+build/
+out/
+
+# 编译出的可执行文件与库
+*.exe
+*.dll
+*.dll.a
+*.lib
+*.o
+*.obj
+
+# 示例运行后生成的图片（原图 images/ 里的要提交）
+result_*.png
+result_*.jpg
+
+# ============ 编辑器/系统 ============
+# VS Code 用户专属配置（保留共享的 .vscode/*.json，忽略个人的）
+.vscode/*.log
+
+# 系统文件
+Thumbs.db
+.DS_Store

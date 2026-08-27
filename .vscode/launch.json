@@ -1,0 +1,40 @@
+{
+    // ============================================================
+    // 调试配置：F5 一键编译 + 启动调试（基于 gdb）
+    // ------------------------------------------------------------
+    // 说明：
+    //   * preLaunchTask 会先自动编译
+    //   * environment.PATH 里加了 OpenCV 的 DLL 目录，保证运行时
+    //     能找到 opencv_world*.dll（即使没走 POST_BUILD 复制）
+    //   * 想调试哪个示例，改 program 里的 exe 名即可
+    // ============================================================
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "调试 01_display_image (gdb)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/01_display_image.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "C:/dev/opencv/opencv/build_mingw/install/bin;C:/dev/opencv/opencv/build_mingw/install/x64/mingw/bin;C:/mingw64/bin;${env:PATH}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "启用 gdb 美化打印（看 cv::Mat 更直观）",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "cmake-build"
+        }
+    ]
+}

@@ -1,0 +1,30 @@
+{
+    // ============================================================
+    // VS Code 智能提示 (IntelliSense) 配置 —— 给代码补全/跳转用
+    // 修改提示：把下面 "opencvInstall" 改成你自己 OpenCV 安装目录
+    // （本仓库默认使用 MinGW 从源码编译后 install 出来的目录）
+    // ============================================================
+    "env": {
+        // 你的 MinGW 编译器路径（g++ 所在目录）
+        "mingwBin": "C:/mingw64/bin",
+        // 你的 OpenCV install 目录（里面应有 include/ 和 lib/）
+        "opencvInstall": "C:/dev/opencv/opencv/build_mingw/install"
+    },
+    "configurations": [
+        {
+            "name": "Win32 (MinGW + OpenCV)",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${env:opencvInstall}/include",
+                "${env:opencvInstall}/include/opencv2"
+            ],
+            "defines": ["_DEBUG", "UNICODE", "_UNICODE"],
+            // 告诉 IntelliSense 用哪个编译器，语法提示才准
+            "compilerPath": "${env:mingwBin}/g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
