@@ -1,12 +1,8 @@
 {
     // ============================================================
     // 调试配置：F5 一键编译 + 启动调试（基于 gdb）
-    // ------------------------------------------------------------
-    // 说明：
-    //   * preLaunchTask 会先自动编译
-    //   * environment.PATH 里加了 OpenCV 的 DLL 目录，保证运行时
-    //     能找到 opencv_world*.dll（即使没走 POST_BUILD 复制）
-    //   * 想调试哪个示例，改 program 里的 exe 名即可
+    // 说明：environment.PATH 里加了 OpenCV 的 DLL 目录，保证运行时
+    //       能找到 opencv_world*.dll；想调试哪个示例改 program 即可
     // ============================================================
     "version": "0.2.0",
     "configurations": [
@@ -21,7 +17,7 @@
             "environment": [
                 {
                     "name": "PATH",
-                    "value": "C:/dev/opencv/opencv/build_mingw/install/bin;C:/dev/opencv/opencv/build_mingw/install/x64/mingw/bin;C:/mingw64/bin;${env:PATH}"
+                    "value": "C:/dev/opencv/opencv/build_mingw/install/x64/mingw/bin;C:/mingw64/bin;${env:PATH}"
                 }
             ],
             "externalConsole": true,

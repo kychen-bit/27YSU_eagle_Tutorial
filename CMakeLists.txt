@@ -71,6 +71,8 @@ foreach(_d ${_opencv_dll_dirs})
         break()
     endif()
 endforeach()
+# 关键：cmake -E copy_directory 不接受带 ../ 的路径，必须先归一化成绝对路径
+get_filename_component(_opencv_dll_dir "${_opencv_dll_dir}" ABSOLUTE)
 message(STATUS "OpenCV DLL 目录: ${_opencv_dll_dir}")
 
 # MinGW 运行时 DLL（g++ 编译的程序都需要这三兄弟）
