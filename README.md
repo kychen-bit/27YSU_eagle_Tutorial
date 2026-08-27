@@ -57,7 +57,7 @@
 7. [第五步：VS Code 日常使用](#7-第五步vscode-日常使用)
 8. [验证清单](#8-验证清单)
 9. [常见问题 FAQ](#9-常见问题-faq)
-10. [上传到 GitHub 给别人用](#10-上传到-github-给别人用)
+10. [上传到 GitHub / Gitee 给别人用](#10-上传到-github--gitee-给别人用)
 11. [仓库目录结构](#11-仓库目录结构)
 
 ---
@@ -429,27 +429,43 @@ Windows 控制台默认 GBK。两种办法：
 
 ---
 
-## 10. 上传到 GitHub 给别人用
+## 10. 上传到 GitHub / Gitee 给别人用
 
 你的仓库**只应该包含源码和配置**，不要包含编译产物（几百 MB ~ 几 GB）。
+本仓库 `.gitignore` 已把 `build/`、`*.exe`、`*.dll`、`result_*.png` 排除，放心 `git add .`。
+
+**核心概念**：一个仓库可以同时挂多个「远程」（remote），推 GitHub 和推 Gitee 互不影响。
 
 ```bat
-# 1. 在项目根目录初始化
+# 1. 本地初始化 + 提交（只做一次）
 git init
 git add .
 git commit -m "OpenCV + C++ 入门示例（MinGW 版）"
 
-# 2. 在 GitHub 新建一个空仓库（不要勾选 README/.gitignore），拿到地址
-git remote add origin https://github.com/<你的用户名>/<仓库名>.git
+# 2a. 推送到 GitHub
+#     在 github.com 新建空仓库（不要勾选 README/.gitignore），拿到地址后：
+git remote add origin https://github.com/<用户名>/<仓库名>.git
 git push -u origin main
+
+# 2b. 推送到 Gitee（码云）
+#     在 gitee.com 新建空仓库（不要勾选 README/.gitignore），拿到地址后：
+git remote add gitee https://gitee.com/<用户名>/<仓库名>.git
+git push -u gitee main
+```
+
+以后每次改完代码，两个平台各推一次（首次可能要输入账号密码/私人令牌）：
+
+```bat
+git push origin main     # 推 GitHub
+git push gitee main      # 推 Gitee
 ```
 
 **别人拿到之后**：
-1. 装好工具链（第 3 节）并编译好 OpenCV（第 5 节）；
-2. 改 `.vscode/tasks.json`、`c_cpp_properties.json` 里的路径为自己的；
+1. 装好工具链（第 3 节）并编译好 OpenCV（第 5 节）；**或直接双击 `setup.bat` 一键搞定**；
+2. 跑一次脚本（或手动把 `.vscode/tasks.json`、`c_cpp_properties.json` 里的路径改成自己的）；
 3. 按第 6 节编译运行即可。
 
-> 本仓库 `.gitignore` 已把 `build/`、`*.exe`、`*.dll`、`result_*.png` 排除，放心 `git add .`。
+> 💡 国内同学访问 GitHub 可能较慢，用 **Gitee 镜像**更顺。两边代码保持一致即可。
 
 ---
 
