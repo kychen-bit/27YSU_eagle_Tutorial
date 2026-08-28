@@ -172,15 +172,71 @@ if (-not $cmake) { Err "没有找到 cmake，无法继续。请手动安装后�
 $gppBin = Split-Path $gpp -Parent
 $make   = Join-Path $gppBin "mingw32-make.exe"
 if (-not (Test-Path $make)) { $make = Find-Exe "mingw32-make"; if (-not $make) { $make = "$gppBin\mingw32-make.exe" } }
-# 编译器版本提醒：OpenCV 4.x 需要较新的 g++
-$gppVerLine = & $gpp --version 2>$null | Select-Object -First 1
-if ($gppVerLine -match '(\d+)\.(\d+)\.') {
-    $gppMajor = [int]$Matches[1]
-    if ($gppMajor -lt 8) {
-        Warn "检测到编译器较旧: $gppVerLine"
-        Warn "OpenCV 4.x 需要较新的编译器。建议装最新版 MinGW-w64 后重跑（脚本可用 winget 自动装）。"
+# ==================== 编译器检查：win32 线程模型 / 太旧 都不能用 OpenCV 4.x ====================
+# win32 线程模型的 libstdc++ 没有 std::recursive_mutex（_GLIBCXX_HAS_GTHREADS 未定义），
+# OpenCV 4.x 头文件用到它，会报 'recursive_mutex' does not name a type，任何参数都救不了。
+function Get-GccInfo([string]$compiler) {
+    if (-not $compiler -or -not (Test-Path $compiler)) { return $null }
+    # 用 cmd 把 stderr 并入 stdout（g++ -v 输出在 stderr；直接 2>&1 在 EAP=Stop 下会抛错）
+    $v = (& cmd /c "`"$compiler`" -v 2>&1")
+    $tm = $null; $m = ($v | Select-String 'Thread model:\s*(\S+)' | Select-Object -First 1)
+    if ($m) { $tm = $m.Matches[0].Groups[1].Value }
+    $vm = ($v | Select-String 'gcc version (\d+)' | Select-Object -First 1)
+    $maj = 0; if ($vm) { $maj = [int]$vm.Matches[0].Groups[1].Value }
+    return @{ Thread = $tm; Major = $maj }
+}
+function Find-PosixGpp {
+    # 在 winget 装过的 WinLibs 里找一个 posix + 较新的 g++
+    $wg = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages"
+    if (-not (Test-Path $wg)) { return $null }
+    foreach ($g in (Get-ChildItem $wg -Recurse -Filter g++.exe -ErrorAction SilentlyContinue)) {
+        $info = Get-GccInfo $g.FullName
+        if ($info -and $info.Thread -eq 'posix' -and $info.Major -ge 8) { return $g.FullName }
+    }
+    return $null
+}
+
+$gppInfo = Get-GccInfo $gpp
+$gppBad  = $false
+if ($gppInfo) {
+    if ($gppInfo.Thread -eq 'win32') {
+        $gppBad = $true
+        Warn "你的 MinGW 是 win32 线程模型（--threads=win32）："
+        Warn "  OpenCV 4.x 头文件依赖 std::recursive_mutex，win32 线程模型的 libstdc++ 没有它，"
+        Warn "  无论怎么配都无法使用 OpenCV 4.x，必须换成 posix 线程模型的 MinGW-w64。"
+    }
+    if ($gppInfo.Major -lt 8) {
+        $gppBad = $true
+        Warn "你的编译器较旧（gcc $($gppInfo.Major)）：OpenCV 4.x 需要较新的编译器。"
     }
 }
+if ($gppBad -and -not $SkipTools) {
+    $newGpp = Find-PosixGpp
+    if (-not $newGpp) {
+        $w = Find-Exe "winget"
+        if ($w) {
+            Warn "正在自动安装 posix 线程模型的最新 MinGW-w64（约 200MB，需几分钟）..."
+            winget install --id BrechtSanders.WinLibs.POSIX.UCRT -e --silent `
+                --accept-package-agreements --accept-source-agreements | Out-Null
+            Refresh-Path
+            $newGpp = Find-PosixGpp
+        }
+    }
+    if ($newGpp) {
+        $gpp = $newGpp
+        Add-UserPath (Split-Path $gpp -Parent)
+        Ok "已改用兼容的编译器: $gpp"
+        $gppBad = $false
+    }
+}
+if ($gppBad) {
+    Err "你的 MinGW 是 win32 线程模型或版本过旧，无法使用 OpenCV 4.x。"
+    Err "请安装 posix 线程模型的 MinGW-w64 后重跑（README 常见问题 Q5 有详细步骤）。"
+    Pause-IfNeeded; exit 1
+}
+$gppBin = Split-Path $gpp -Parent
+$make   = Join-Path $gppBin "mingw32-make.exe"
+if (-not (Test-Path $make)) { $make = Find-Exe "mingw32-make"; if (-not $make) { $make = "$gppBin\mingw32-make.exe" } }
 Ok "编译器: $gpp"
 Ok "make  : $make"
 

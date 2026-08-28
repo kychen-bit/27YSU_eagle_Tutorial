@@ -473,21 +473,32 @@ cmake --build build -j 8
   `install\x64\mingw\bin\*.dll` 复制到 `build\` 下；
 - 或临时加 PATH：`set PATH=C:\dev\opencv\opencv\build_mingw\install\x64\mingw\bin;%PATH%` 再运行。
 
-**Q5：编译报错 `'Mutex' in namespace 'cv' does not name a type` / `template argument 1 is invalid`**
+**Q5：编译报错 `'recursive_mutex' in namespace 'std' does not name a type` / `'Mutex' does not name a type`**
 现象：编译时头文件报
-      `utility.hpp: typedef std::lock_guard<cv::Mutex> AutoLock; 模板参数 1 无效`、
-      `'Mutex' in namespace 'cv' does not name a type`、`'mutex' was not declared`。
-原因：OpenCV 头文件里的 `cv::Mutex` 依赖 C++11 的 `<mutex>`（`std::recursive_mutex`）。
-      报这个错说明**当前用到的 OpenCV 和编译器不匹配**，通常是：
-      1) 机器上有个来历不明的旧 OpenCV（比如别的教程装的 `C:\dev\opencv\install`），
-         是 MSVC 版、别的编译器编的、或损坏的；
-      2) 编译器太旧（gcc 4.x/5.x）或没开 C++11。
-解决：
-- ✅ 新版脚本会自动**自检**：找到的 OpenCV 会先编译+运行一个小程序验证，
-  不兼容就自动改用源码重新编译，不会再拿坏的硬用；
-- 若仍报错：**删掉 `C:\dev\opencv` 下旧文件夹**（尤其 `C:\dev\opencv\install`），重跑脚本；
-- 检查编译器版本：`g++ --version`，主版本 < 8 建议装最新版 MinGW-w64；
-- 编译需带 C++11+（本工程已设 C++17，一般不用管）。
+      `utility.hpp: typedef std::recursive_mutex Mutex; 'recursive_mutex' does not name a type`、
+      `typedef std::lock_guard<cv::Mutex> AutoLock; 模板参数 1 无效`、
+      `'Mutex' in namespace 'cv' does not name a type`。
+原因：OpenCV 4.x 头文件里的 `cv::Mutex` 依赖 C++11 的 `std::recursive_mutex`。报这个错，**头号原因是
+      你的 MinGW 是 win32 线程模型**（`g++ -v` 里 `Thread model: win32`）：
+      win32 线程模型的 libstdc++ **天生没有** `std::recursive_mutex`，没有任何编译参数能救，
+      必须换成 **posix 线程模型**的 MinGW-w64。
+      次要原因：用了不匹配的 OpenCV（MSVC 版/别的编译器编的/损坏）、或编译器太旧（gcc 4/5/6）。
+检查方法：
+```bat
+g++ -v
+```
+看 `Thread model:` 是 `posix`（✅ 能用）还是 `win32`（❌ 必须换）。
+解决（**路线 A，推荐，根治**）：
+- 换成 posix 线程模型、较新的 MinGW-w64（如 `x86_64-8.1.0-release-posix-seh-rt_v6-rev0`，
+  或 winlibs 的 POSIX UCRT 版）；
+- 换编译器后，**之前用旧编译器编的 OpenCV install 不要再直接复用**（ABI 可能不匹配），
+  建议让脚本从源码重新编译一份（回车不填 install 路径即可，30~60 分钟）；
+- ✅ 新版脚本会自动识别：检测到 win32 线程模型/太旧的编译器会明确提示，
+  并尝试用 winget 自动装 posix 版 MinGW-w64；找到的 OpenCV 也会先**自检**再使用。
+解决（**路线 B，不推荐**）：保留 win32 线程 MinGW，把 OpenCV 降到 **3.4.x**（早期版本不依赖
+  `std::recursive_mutex`）。缺点：新 API/部分算法/相机模块缺失，能用但落后。
+> ⚠️ 别浪费时间：在 cpp 里 `#include <mutex>`、加 `-pthread`、改 `-std`、改 tasks.json、
+> 反复清理 build——这些对 win32 线程模型**都没用**，问题在编译器本身。
 
 **Q6：用官方预编译 OpenCV + MinGW 报一堆链接错误**
 原因：官方预编译是 MSVC 版，ABI 不兼容 MinGW。
