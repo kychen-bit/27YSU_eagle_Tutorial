@@ -234,8 +234,30 @@ if ($candidate) {
     Err "-SkipOpenCVBuild 已指定，但本机没有可用的 OpenCV，无法继续。"
     Pause-IfNeeded; exit 1
 } else {
-    # ---------- 需要从源码编译 ----------
-    Info "没有找到可用的 MinGW 版 OpenCV，开始从源码编译（只需做一次，约 30~60 分钟）..."
+    # ---------- 处理：本机没有现成 OpenCV ----------
+    # 先问一句：有没有别人（学长）给的 install 文件夹？有就跳过编译，几十秒搞定
+    $script:haveInstall = $false
+    if (-not $NoPause) {
+        Write-Host ""
+        $ans = Read-Host "  有没有别人给你的 OpenCV install 文件夹？有就输入它的路径（直接回车则从源码编译，约30~60分钟）"
+        $ans = $ans.Trim().Trim('"')
+        if ($ans) {
+            $c = Test-OpenCVInstall $ans
+            if ($c) {
+                $opencvInstall = $c.Install
+                $opencvLibDir  = $c.Lib
+                $opencvDllDir  = if ($c.Dll) { $c.Dll } else { Join-Path $c.Install "x64\mingw\bin" }
+                $script:haveInstall = $true
+                Ok "直接使用该 install 文件夹，跳过编译！"
+            } else {
+                Warn "该路径不是有效的 OpenCV install 文件夹，改为从源码编译。"
+            }
+        }
+    }
+
+    if (-not $script:haveInstall) {
+        # ---------- 需要从源码编译 ----------
+        Info "没有找到可用的 MinGW 版 OpenCV，开始从源码编译（只需做一次，约 30~60 分钟）..."
 
     # 下载源码（若 C:\dev\opencv\opencv\sources 已存在则复用）
     $srcRoot = Join-Path $opencvBase "opencv"
@@ -337,10 +359,11 @@ if ($candidate) {
     & cmake --install $buildDir
     if ($LASTEXITCODE -ne 0) { Err "安装失败"; Pause-IfNeeded; exit 1 }
 
-    $opencvInstall = $installPrefix
-    $opencvLibDir  = Join-Path $installPrefix "x64\mingw\lib"
-    $opencvDllDir  = Join-Path $installPrefix "x64\mingw\bin"
-    Ok "OpenCV 编译并安装完成！"
+        $opencvInstall = $installPrefix
+        $opencvLibDir  = Join-Path $installPrefix "x64\mingw\lib"
+        $opencvDllDir  = Join-Path $installPrefix "x64\mingw\bin"
+        Ok "OpenCV 编译并安装完成！"
+    }
 }
 
 # 验证 OpenCV

@@ -507,7 +507,25 @@ git push gitee main      # 推 Gitee
 3. 按第 6 节编译运行即可。
 
 > 💡 国内同学访问 GitHub 可能较慢，用 **Gitee 镜像**更顺。两边代码保持一致即可。
+### 10.1 给同学分发编译好的 install（跳过 30~60 分钟编译）
 
+如果你已经把 OpenCV 编译好了，可以**只发一个约 54MB 的文件夹**，同学就不用等编译了。
+
+**你在自己电脑上（打包）：**
+1. 找到 `C:\dev\opencv\opencv\build_mingw\install`
+2. 右键 → **压缩成 zip**（压完约 20MB）
+3. 用 QQ / 微信 / 网盘 / Gitee Release 发给同学
+
+**同学拿到后（使用）：**
+1. 解压到任意位置，例如 `D:\opencv-install`
+2. 双击 `setup.bat`，当脚本提示
+   「有没有别人给你的 OpenCV install 文件夹？有就输入它的路径」时，
+   **输入 `D:\opencv-install` 回车**
+   → 脚本直接使用它，**跳过编译，几十秒就配好**
+3. 或者把解压后的 install 放到 `C:\dev\opencv\opencv\build_mingw\install`，脚本会自动找到
+
+> ✅ 这个 install 文件夹**可以随便移动位置**（实测过：复制到别的盘、别的路径后
+> `find_package`、编译、运行都正常），因为 `OpenCVConfig.cmake` 用的是**相对路径**，不写死。
 ---
 
 ## 11. 仓库目录结构
