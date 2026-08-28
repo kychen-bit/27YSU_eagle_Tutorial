@@ -473,29 +473,45 @@ cmake --build build -j 8
   `install\x64\mingw\bin\*.dll` 复制到 `build\` 下；
 - 或临时加 PATH：`set PATH=C:\dev\opencv\opencv\build_mingw\install\x64\mingw\bin;%PATH%` 再运行。
 
-**Q5：用官方预编译 OpenCV + MinGW 报一堆链接错误**
+**Q5：编译报错 `'Mutex' in namespace 'cv' does not name a type` / `template argument 1 is invalid`**
+现象：编译时头文件报
+      `utility.hpp: typedef std::lock_guard<cv::Mutex> AutoLock; 模板参数 1 无效`、
+      `'Mutex' in namespace 'cv' does not name a type`、`'mutex' was not declared`。
+原因：OpenCV 头文件里的 `cv::Mutex` 依赖 C++11 的 `<mutex>`（`std::recursive_mutex`）。
+      报这个错说明**当前用到的 OpenCV 和编译器不匹配**，通常是：
+      1) 机器上有个来历不明的旧 OpenCV（比如别的教程装的 `C:\dev\opencv\install`），
+         是 MSVC 版、别的编译器编的、或损坏的；
+      2) 编译器太旧（gcc 4.x/5.x）或没开 C++11。
+解决：
+- ✅ 新版脚本会自动**自检**：找到的 OpenCV 会先编译+运行一个小程序验证，
+  不兼容就自动改用源码重新编译，不会再拿坏的硬用；
+- 若仍报错：**删掉 `C:\dev\opencv` 下旧文件夹**（尤其 `C:\dev\opencv\install`），重跑脚本；
+- 检查编译器版本：`g++ --version`，主版本 < 8 建议装最新版 MinGW-w64；
+- 编译需带 C++11+（本工程已设 C++17，一般不用管）。
+
+**Q6：用官方预编译 OpenCV + MinGW 报一堆链接错误**
 原因：官方预编译是 MSVC 版，ABI 不兼容 MinGW。
 解决：用本教程"源码编译"方式生成 MinGW 版；或改用 Visual Studio（MSVC）。
 
-**Q6：`g++` 不是内部或外部命令**
+**Q7：`g++` 不是内部或外部命令**
 原因：MinGW 的 `bin` 没加进 PATH，或没重开终端。
 解决：检查环境变量 `Path`，重开终端。
 
-**Q7：摄像头打不开（`无法打开摄像头`）**
+**Q8：摄像头打不开（`无法打开摄像头`）**
 可能原因：
 - 摄像头被其他软件（微信/Teams）占用 → 关掉再试；
 - 设备号不是 0 → 把代码里的 `VideoCapture(0)` 改成 `1` 或 `2`；
 - 笔记本需在系统设置里允许应用使用摄像头。
 
-**Q8：终端中文乱码**
+**Q9：终端中文乱码**
 Windows 控制台默认 GBK。两种办法：
 - 在 VS Code 里运行（VS Code 终端默认 UTF-8）；
 - 或在控制台执行 `chcp 65001` 切到 UTF-8。
 
-**Q9：每次改 OpenCV 都要重新编译吗？**
+**Q10：每次改 OpenCV 都要重新编译吗？**
 不用。OpenCV 编译一次即可，之后你的示例项目只是**链接**它。
 
-**Q10：编译很慢怎么办？**
+**Q11：编译很慢怎么办？**
 - 用 `-j` 加大并行数（CPU 核数）；
 - 缩小 `BUILD_LIST`（只留需要的模块）；
 - 只编译一次，之后就快了。

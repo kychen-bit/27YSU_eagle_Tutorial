@@ -172,6 +172,15 @@ if (-not $cmake) { Err "没有找到 cmake，无法继续。请手动安装后�
 $gppBin = Split-Path $gpp -Parent
 $make   = Join-Path $gppBin "mingw32-make.exe"
 if (-not (Test-Path $make)) { $make = Find-Exe "mingw32-make"; if (-not $make) { $make = "$gppBin\mingw32-make.exe" } }
+# 编译器版本提醒：OpenCV 4.x 需要较新的 g++
+$gppVerLine = & $gpp --version 2>$null | Select-Object -First 1
+if ($gppVerLine -match '(\d+)\.(\d+)\.') {
+    $gppMajor = [int]$Matches[1]
+    if ($gppMajor -lt 8) {
+        Warn "检测到编译器较旧: $gppVerLine"
+        Warn "OpenCV 4.x 需要较新的编译器。建议装最新版 MinGW-w64 后重跑（脚本可用 winget 自动装）。"
+    }
+}
 Ok "编译器: $gpp"
 Ok "make  : $make"
 
@@ -201,6 +210,34 @@ function Test-OpenCVInstall([string]$root) {
     return @{ Install = $root; Lib = $lib; Dll = $dll }
 }
 
+function Test-OpenCVCompiles([string]$libDir, [string]$incDir, [string]$dllDir, [string]$compiler) {
+    # 自检：用当前编译器编译+运行一个 5 秒的小程序，
+    # 验证这个 OpenCV 真的能用（防捡到 MSVC版/损坏/ABI不匹配/编译器太旧的 OpenCV）
+    if (-not $compiler -or -not (Test-Path $compiler)) { return $false }
+    $world = Get-ChildItem $libDir -Filter "libopencv_world*.dll.a" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $world) { return $false }   # 没有 MinGW 的 .dll.a 导入库 → 不是 MinGW 版 → 不可用
+    $libname = ($world.BaseName -replace '^lib','') -replace '\.dll$',''   # opencv_world4130
+    $tmp = Join-Path $env:TEMP "opencv_selftest"
+    New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+    $src = Join-Path $tmp "t.cpp"
+    $exe = Join-Path $tmp "t.exe"
+    Remove-Item $exe -Force -ErrorAction SilentlyContinue
+    @'
+#include <opencv2/opencv.hpp>
+#include <iostream>
+int main(){ cv::Mat m(10, 10, CV_8UC1, cv::Scalar(0)); std::cout << CV_VERSION; return m.empty() ? 1 : 0; }
+'@ | Set-Content $src -Encoding UTF8
+    & $compiler -std=c++17 $src -I"$incDir" -L"$libDir" "-l$libname" -o $exe 2>$null
+    if ($LASTEXITCODE -ne 0) { return $false }
+    $oldPath = $env:PATH
+    $env:PATH = "$dllDir;$env:PATH"
+    & $exe *> $null
+    $ok = ($LASTEXITCODE -eq 0)
+    $env:PATH = $oldPath
+    Remove-Item $exe -Force -ErrorAction SilentlyContinue
+    return $ok
+}
+
 $candidate = $null
 if ($OpenCVDir) { $candidate = Test-OpenCVInstall $OpenCVDir }
 if (-not $candidate -and $env:OpenCV_DIR) { $candidate = Test-OpenCVInstall $env:OpenCV_DIR }
@@ -222,12 +259,25 @@ if (-not $candidate) {
     }
 }
 
+$candidateOk = $false
 if ($candidate) {
     $opencvInstall = $candidate.Install
     $opencvLibDir  = $candidate.Lib
     $opencvDllDir  = if ($candidate.Dll) { $candidate.Dll } else { Join-Path $opencvInstall "x64\mingw\bin" }
-    Ok "找到已有的 MinGW 版 OpenCV:"
-    Ok "  install : $opencvInstall"
+    Ok "找到一个 OpenCV: $opencvInstall"
+    Info "自检中：编译+运行一个 5 秒的小程序，确认它能用当前编译器..."
+    $candidateOk = Test-OpenCVCompiles $opencvLibDir (Join-Path $opencvInstall "include") $opencvDllDir $gpp
+    if ($candidateOk) {
+        Ok "自检通过，该 OpenCV 可用！"
+    } else {
+        Warn "自检失败：这个 OpenCV 与当前编译器不兼容（可能是 MSVC 版、损坏，或编译器太旧）。"
+        Warn "改为从源码重新编译一份适合本机的 OpenCV。"
+        $opencvInstall = ""; $opencvLibDir = ""; $opencvDllDir = ""
+    }
+}
+if ($candidateOk) {
+    Ok "使用 OpenCV:"
+    Ok "  install   : $opencvInstall"
     Ok "  OpenCV_DIR: $opencvLibDir"
     if (-not $opencvDllDir) { Warn "没找到 OpenCV 的 DLL 目录，运行 exe 时可能报缺 dll" }
 } elseif ($SkipOpenCVBuild) {
@@ -247,8 +297,13 @@ if ($candidate) {
                 $opencvInstall = $c.Install
                 $opencvLibDir  = $c.Lib
                 $opencvDllDir  = if ($c.Dll) { $c.Dll } else { Join-Path $c.Install "x64\mingw\bin" }
-                $script:haveInstall = $true
-                Ok "直接使用该 install 文件夹，跳过编译！"
+                Info "自检中：确认这个 install 能用当前编译器..."
+                if (Test-OpenCVCompiles $opencvLibDir (Join-Path $opencvInstall "include") $opencvDllDir $gpp) {
+                    $script:haveInstall = $true
+                    Ok "自检通过，直接使用该 install 文件夹，跳过编译！"
+                } else {
+                    Warn "这个 install 与当前编译器不兼容（可能是 MSVC 版/损坏），改为从源码编译。"
+                }
             } else {
                 Warn "该路径不是有效的 OpenCV install 文件夹，改为从源码编译。"
             }
@@ -563,7 +618,13 @@ if ($buildOk) {
     Ok "  build\02_grayscale.exe       （灰度转换）"
     Ok "  build\03_camera.exe          （摄像头）"
 } else {
-    Warn "示例编译失败，请把上面的日志发给懂的人看看。"
+    Warn "示例编译失败。常见原因与解决办法："
+    Warn "  1) 编译器太旧（gcc 4.x/5.x）：OpenCV 4.x 需要较新编译器，装最新版 MinGW-w64 后重跑"
+    Warn "  2) 报错含 Mutex / recursive_mutex / template argument 1 is invalid："
+    Warn "     说明 OpenCV 与编译器不匹配（用了 MSVC 版或别的编译器编的）。删掉 C:\dev\opencv 下"
+    Warn "     旧的 install 文件夹后重跑，脚本会从源码编译一份适合本机的。"
+    Warn "  3) 报错找不到 .dll：确认 install 目录的 bin 里有 libopencv_world*.dll"
+    Warn "  请把上面的日志发给懂的人看看。"
 }
 Write-Host ""
 Say "接下来在 VS Code 里："
