@@ -256,6 +256,7 @@ cmake -S C:\dev\opencv\opencv\sources ^
 | `-DBUILD_opencv_world=ON`       | 把所有模块合成**一个** `opencv_world` 库，链接时只写一个库名 |
 | `-DBUILD_LIST=core,imgproc,...` | **只编译这些模块**，大幅缩短编译时间（本仓库示例用到的）       |
 | `-DWITH_FFMPEG=OFF`             | 跳过 FFmpeg（本教程不需要读视频文件，摄像头用 DirectShow）           |
+| `-DWITH_OPENEXR=OFF`<br>`-DWITH_JASPER=OFF`<br>`-DWITH_OPENJPEG=OFF` | 关掉用不到的图像格式第三方库（`.exr`/JPEG2000）：**入门完全用不到**，关了编译更快更稳（新版编译器下它们还有编译 bug）。PNG/JPEG/WebP/TIFF 等常用格式**不受影响** |
 | `-DCMAKE_INSTALL_PREFIX=...`    | 指定最终"安装"位置                                                   |
 
 **如何确认成功**：终端最后几行应出现

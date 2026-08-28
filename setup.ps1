@@ -469,6 +469,11 @@ if ($candidateOk) {
         "-DBUILD_opencv_python3=OFF",
         "-DWITH_FFMPEG=OFF",
         "-DWITH_OPENCL=OFF",
+        # 关掉用不到的图像格式第三方库：更快更稳，也避开它们在新版编译器下的编译 bug
+        # （OpenEXR 只用于 .exr 格式；Jasper/OpenJPEG 是 JPEG2000，入门用不到）
+        "-DWITH_OPENEXR=OFF",
+        "-DWITH_JASPER=OFF",
+        "-DWITH_OPENJPEG=OFF",
         "-DBUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,flann,features2d,calib3d,objdetect,photo",
         "-DCMAKE_INSTALL_PREFIX=$installPrefix"
     )
@@ -617,6 +622,34 @@ $launch = @'
             "request": "launch",
             "program": "${workspaceFolder}/build/01_display_image.exe",
             "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "__OPENCV_DLL__;__MINGW_BIN__;${env:PATH}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "__MINGW_BIN__/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "启用 gdb 美化打印（看 cv::Mat 更直观）",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "cmake-build"
+        },
+        {
+            // 带命令行参数调试：把 args 里填上参数即可，
+            // 比如让 01 显示你自己的一张图、让 03 用 1 号摄像头
+            "name": "调试（带命令行参数）",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/01_display_image.exe",
+            "args": ["images/test_image.png"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
