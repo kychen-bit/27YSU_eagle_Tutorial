@@ -2,6 +2,7 @@
     // ============================================================
     // 编译任务：在 VS Code 里按 Ctrl+Shift+B 一键编译
     // 原理：调 cmake 配置 + 编译，产物输出到 build/ 目录
+    // 说明：用 Ninja 生成器（仓库自带 tools/ninja.exe），支持中文路径
     // 修改提示：本脚本已自动填好下面几个路径，一般不用再改
     // ============================================================
     "version": "2.0.0",
@@ -16,8 +17,8 @@
             "args": [
                 "-S", ".",
                 "-B", "build",
-                "-G", "MinGW Makefiles",
-                "-DCMAKE_MAKE_PROGRAM=C:/mingw64/bin/mingw32-make.exe",
+                "-G", "Ninja",
+                "-DCMAKE_MAKE_PROGRAM=${workspaceFolder}/tools/ninja.exe",
                 "-DCMAKE_CXX_COMPILER=C:/mingw64/bin/g++.exe",
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DOpenCV_DIR=C:/dev/opencv/opencv/build_mingw/install/x64/mingw/lib"

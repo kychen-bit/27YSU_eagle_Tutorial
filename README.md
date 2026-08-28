@@ -304,17 +304,17 @@ cd opencv
 ### 6.2 配置 + 编译
 
 ```bat
-cmake -S . -B build -G "MinGW Makefiles" ^
-      -DCMAKE_MAKE_PROGRAM=C:/mingw64/bin/mingw32-make.exe ^
+cmake -S . -B build -G Ninja ^
+      -DCMAKE_MAKE_PROGRAM=tools/ninja.exe ^
+      -DCMAKE_CXX_COMPILER=C:/mingw64/bin/g++.exe ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DOpenCV_DIR=C:/dev/opencv/opencv/build_mingw/install/x64/mingw/lib
 
 cmake --build build -j 8
 ```
 
-> ⚠️ **`-DOpenCV_DIR` 要指向你 OpenCV 的 `x64/mingw/lib` 目录**（里面要有 `OpenCVConfig.cmake`），
-> 这是告诉 CMake"去这里找 OpenCV"的关键。路径错了会报
-> `Could not find a package configuration file provided by OpenCV`。
+> 💡 用 **Ninja** 生成器（仓库自带 `tools/ninja.exe`）：即使路径含中文也能正常编译，
+> 比 MinGW Makefiles 更稳更快。
 
 **如何确认成功**：`build/` 下出现三个 exe：
 ```
@@ -322,7 +322,7 @@ build/01_display_image.exe
 build/02_grayscale.exe
 build/03_camera.exe
 ```
-同时每个 exe 旁边自动复制了 `opencv_world413.dll` 和 MinGW 运行时 DLL（这是 `CMakeLists.txt` 里的 POST_BUILD 步骤干的）。
+同时每个 exe 旁边自动复制了 `libopencv_world4130.dll` 和 MinGW 运行时 DLL（这是 `CMakeLists.txt` 里的 POST_BUILD 步骤干的）。
 
 ### 6.3 运行示例
 
@@ -415,42 +415,55 @@ cmake --build build -j 8
 
 **Q2：下载 OpenCV 源码失败 / 卡住 / 超时（国内网络常见）**
 现象：卡在"下载 OpenCV 4.13.0 源码"很久，或提示下载失败。
-原因：脚本默认从 **GitHub** 下载约 100MB 源码，国内网络访问 GitHub 经常很慢或超时。
+原因：源码约 100MB，默认从 **GitHub** 下载，国内网络访问 GitHub 经常很慢或超时。
 解决：
-- ✅ 新版脚本会**自动依次尝试**：GitHub 官方 → **Gitee 镜像**（国内快）→ Gitee 备用格式，一般能自动成功；
-- 若仍失败：手动到 `https://gitee.com/mirrors/opencv` 下载 4.13.0 的 zip，
-  解压后把内容放进 `C:\dev\opencv\opencv\sources`（要包含 `CMakeLists.txt`），再重跑脚本。
+- ✅ 新版脚本会**自动依次尝试**：GitHub 官方 zip → GitHub 直连 → `git clone`，一般能成功；
+- 若仍失败（脚本会打印详细提示），三选一：
+  1) 浏览器打开 `https://github.com/opencv/opencv/archive/refs/tags/4.13.0.zip` 手动下载，
+     解压后把内容放进 `C:\dev\opencv\opencv\sources`（要包含 `CMakeLists.txt`），再重跑脚本；
+  2) 命令行执行
+     `git clone --depth 1 --branch 4.13.0 https://github.com/opencv/opencv.git C:\dev\opencv\opencv\sources`
+  3) 问学长要一份**编译好的 install 文件夹**，用 `setup.ps1 -OpenCVDir 路径` 跳过编译（秒过）。
 
-**Q3：运行 exe 报"找不到 opencv_world413.dll"**
+**Q3：仓库路径里含中文（如 `过渡时期`、`作业`），编译报错
+`CMake Error: Target DependInfo.cmake file not found` / `No rule to make target`**
+现象：`setup.bat` 能跑，但最后编译示例时报上面的错（配置阶段可能正常）。
+原因：CMake 的 **MinGW Makefiles** 生成器**不支持非 ASCII 路径**，生成的 Makefile 里中文路径会编码错乱。
+解决：
+- ✅ 新版仓库**自带 `tools/ninja.exe`**，脚本检测到中文路径会自动改用 **Ninja 生成器**，已修复，直接更新仓库重下即可；
+- 也可把整个项目移到**纯英文路径**（如 `C:\opencv`）再跑；
+- 手动用 Ninja 编译：`cmake -S . -B build -G Ninja -DCMAKE_MAKE_PROGRAM=tools/ninja.exe ...`。
+
+**Q4：运行 exe 报"找不到 opencv_world413.dll"**
 原因：exe 找不到动态库。
 解决：
 - 本仓库的 CMakeLists 会自动把 DLL 复制到 exe 旁边，若还报错，手动把
   `install\x64\mingw\bin\*.dll` 复制到 `build\` 下；
 - 或临时加 PATH：`set PATH=C:\dev\opencv\opencv\build_mingw\install\x64\mingw\bin;%PATH%` 再运行。
 
-**Q4：用官方预编译 OpenCV + MinGW 报一堆链接错误**
+**Q5：用官方预编译 OpenCV + MinGW 报一堆链接错误**
 原因：官方预编译是 MSVC 版，ABI 不兼容 MinGW。
 解决：用本教程"源码编译"方式生成 MinGW 版；或改用 Visual Studio（MSVC）。
 
-**Q5：`g++` 不是内部或外部命令**
+**Q6：`g++` 不是内部或外部命令**
 原因：MinGW 的 `bin` 没加进 PATH，或没重开终端。
 解决：检查环境变量 `Path`，重开终端。
 
-**Q6：摄像头打不开（`无法打开摄像头`）**
+**Q7：摄像头打不开（`无法打开摄像头`）**
 可能原因：
 - 摄像头被其他软件（微信/Teams）占用 → 关掉再试；
 - 设备号不是 0 → 把代码里的 `VideoCapture(0)` 改成 `1` 或 `2`；
 - 笔记本需在系统设置里允许应用使用摄像头。
 
-**Q7：终端中文乱码**
+**Q8：终端中文乱码**
 Windows 控制台默认 GBK。两种办法：
 - 在 VS Code 里运行（VS Code 终端默认 UTF-8）；
 - 或在控制台执行 `chcp 65001` 切到 UTF-8。
 
-**Q8：每次改 OpenCV 都要重新编译吗？**
+**Q9：每次改 OpenCV 都要重新编译吗？**
 不用。OpenCV 编译一次即可，之后你的示例项目只是**链接**它。
 
-**Q9：编译很慢怎么办？**
+**Q10：编译很慢怎么办？**
 - 用 `-j` 加大并行数（CPU 核数）；
 - 缩小 `BUILD_LIST`（只留需要的模块）；
 - 只编译一次，之后就快了。
@@ -503,9 +516,11 @@ git push gitee main      # 推 Gitee
 opencv/
 ├── CMakeLists.txt            # 示例项目的构建脚本（含自动复制 DLL 步骤）
 ├── README.md                 # 本教程
-├── setup.bat                 # 一键脚本入口（双击它）
+├── setup.bat                 # 一键脚本入口（双击它，纯英文防乱码）
 ├── setup.ps1                 # 一键脚本本体（自动装工具链/OpenCV、写配置）
 ├── .gitignore                # 排除编译产物
+├── tools/
+│   └── ninja.exe             # 内置构建工具（免安装、支持中文路径，随仓库分发）
 ├── .vscode/
 │   ├── c_cpp_properties.json # 智能提示配置（改路径）
 │   ├── tasks.json            # Ctrl+Shift+B 一键编译（改路径）

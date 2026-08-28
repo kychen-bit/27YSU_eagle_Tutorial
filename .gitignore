@@ -11,6 +11,10 @@ out/
 *.o
 *.obj
 
+# 例外：仓库自带的独立 ninja 构建工具要提交
+!tools/ninja.exe
+!tools/
+
 # 示例运行后生成的图片（原图 images/ 里的要提交）
 result_*.png
 result_*.jpg

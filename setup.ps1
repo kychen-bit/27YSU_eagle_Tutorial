@@ -64,6 +64,15 @@ function Find-Exe([string]$name) {
     return $null
 }
 
+function Resolve-Ninja {
+    # 优先用仓库自带的 tools/ninja.exe（已随仓库分发，免安装、无需网络）
+    $local = Join-Path $PSScriptRoot "tools\ninja.exe"
+    if (Test-Path $local) { return $local }
+    $c = Find-Exe "ninja"
+    if ($c) { return $c }
+    return $null
+}
+
 function Add-UserPath([string]$dir) {
     if (-not (Test-Path $dir)) { return }
     $u = [Environment]::GetEnvironmentVariable('Path','User')
@@ -237,11 +246,10 @@ if ($candidate) {
         if (-not (Test-Path $zip)) {
             Info "下载 OpenCV $OpenCV_VER 源码（约 100MB）..."
             $curl = Find-Exe "curl"
-            # 依次尝试：GitHub 官方 → Gitee 镜像（国内更快/更稳）
+            # 依次尝试：GitHub 官方 zip → GitHub 直连 → git clone（实测国内可能时好时坏，都试一遍）
             $urls = @(
                 $OpenCV_TAG_URL,
-                "https://gitee.com/mirrors/opencv/archive/refs/tags/$OpenCV_VER.zip",
-                "https://gitee.com/mirrors/opencv/repository/archive/$OpenCV_VER.zip"
+                "https://codeload.github.com/opencv/opencv/zip/refs/tags/$OpenCV_VER"
             )
             $ok = $false
             foreach ($u in $urls) {
@@ -259,9 +267,20 @@ if ($candidate) {
                     Remove-Item $zip -Force -ErrorAction SilentlyContinue
                 }
             }
+            # 都不行 → 再试 git clone（有时 git 能通而 curl 不行）
+            if (-not $ok -and $git) {
+                Info "改用 git clone 获取源码（可能更稳）..."
+                if (Test-Path $srcDir) { Remove-Item $srcDir -Recurse -Force -ErrorAction SilentlyContinue }
+                & git clone --depth 1 --branch $OpenCV_VER https://github.com/opencv/opencv.git $srcDir
+                if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $srcDir "CMakeLists.txt"))) { $ok = $true }
+                else { Remove-Item $srcDir -Recurse -Force -ErrorAction SilentlyContinue }
+            }
             if (-not $ok) {
-                Err "源码下载失败，请检查网络后重试，或手动下载后放进:"
-                Err "  $srcDir （需包含 CMakeLists.txt）"
+                Err "自动下载失败。请手动获取源码（三选一）："
+                Err "  1) 浏览器打开 $OpenCV_TAG_URL 下载 zip，解压后把内容放进:"
+                Err "     $srcDir"
+                Err "  2) 有 git 的话执行: git clone --depth 1 --branch $OpenCV_VER https://github.com/opencv/opencv.git `"$srcDir`""
+                Err "  3) 问学长要一份编译好的 install 文件夹，用 -OpenCVDir 指定路径跳过编译"
                 Pause-IfNeeded; exit 1
             }
         }
@@ -387,6 +406,7 @@ $tasks = @'
     // ============================================================
     // 编译任务：在 VS Code 里按 Ctrl+Shift+B 一键编译
     // 原理：调 cmake 配置 + 编译，产物输出到 build/ 目录
+    // 说明：用 Ninja 生成器（仓库自带 tools/ninja.exe），支持中文路径
     // 修改提示：本脚本已自动填好下面几个路径，一般不用再改
     // ============================================================
     "version": "2.0.0",
@@ -401,8 +421,8 @@ $tasks = @'
             "args": [
                 "-S", ".",
                 "-B", "build",
-                "-G", "MinGW Makefiles",
-                "-DCMAKE_MAKE_PROGRAM=__MINGW_BIN__/mingw32-make.exe",
+                "-G", "Ninja",
+                "-DCMAKE_MAKE_PROGRAM=${workspaceFolder}/tools/ninja.exe",
                 "-DCMAKE_CXX_COMPILER=__MINGW_BIN__/g++.exe",
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DOpenCV_DIR=__OPENCV_LIB__"
@@ -472,17 +492,39 @@ Ok "已写入 launch.json"
 # ---------------- 第 4 步：编译本仓库示例并验证 ----------------
 Step "4/4 编译示例项目并验证"
 
+# 中文/非 ASCII 路径：MinGW Makefiles 生成器不支持，用仓库自带 ninja（Ninja 生成器）即可
+$script:ninja = Resolve-Ninja
+if ($repo -match '[^\x00-\x7F]') {
+    if ($script:ninja) {
+        Info "检测到仓库路径含中文：$repo"
+        Info "已自动使用内置 ninja 构建（中文路径也 OK）。"
+    } else {
+        Warn "检测到仓库路径含中文，且未找到 ninja。"
+        Warn "MinGW Makefiles 生成器不支持中文路径，建议把项目移到纯英文路径（如 C:\opencv）后重试。"
+    }
+}
+
 Push-Location $repo
 # 保证全新配置：清掉旧的 build（示例很小，重编只需几秒）
 if (Test-Path (Join-Path $repo "build")) {
     Info "清理旧的 build 目录（示例很小，重新编译很快）..."
     Remove-Item (Join-Path $repo "build") -Recurse -Force -ErrorAction SilentlyContinue
 }
-& cmake -S . -B build -G "MinGW Makefiles" `
-    "-DCMAKE_MAKE_PROGRAM=$gppBinF/mingw32-make.exe" `
-    "-DCMAKE_CXX_COMPILER=$gppBinF/g++.exe" `
-    -DCMAKE_BUILD_TYPE=Release `
-    "-DOpenCV_DIR=$opencvLibDir"
+if ($script:ninja) {
+    $ninjaF = To-Forward $script:ninja
+    Info "使用 Ninja 构建: $script:ninja"
+    & cmake -S . -B build -G Ninja `
+        "-DCMAKE_MAKE_PROGRAM=$ninjaF" `
+        "-DCMAKE_CXX_COMPILER=$gppBinF/g++.exe" `
+        -DCMAKE_BUILD_TYPE=Release `
+        "-DOpenCV_DIR=$opencvLibDir"
+} else {
+    & cmake -S . -B build -G "MinGW Makefiles" `
+        "-DCMAKE_MAKE_PROGRAM=$gppBinF/mingw32-make.exe" `
+        "-DCMAKE_CXX_COMPILER=$gppBinF/g++.exe" `
+        -DCMAKE_BUILD_TYPE=Release `
+        "-DOpenCV_DIR=$opencvLibDir"
+}
 if ($LASTEXITCODE -eq 0) {
     & cmake --build build -j (Get-CPUCount)
 }
