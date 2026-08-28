@@ -440,23 +440,35 @@ if ($candidateOk) {
     $installPrefix = Join-Path $buildDir "install"
     $gppFwd = To-Forward $gpp
     $makeFwd = To-Forward $make
+    # C 编译器必须用 gcc.exe（不能用 g++）！用 g++ 当 C 编译器会报
+    # "The CMAKE_C_COMPILER is set to a C++ compiler"
+    $gccPath = Join-Path $gppBin "gcc.exe"
+    $cArg = if (Test-Path $gccPath) { "-DCMAKE_C_COMPILER=" + (To-Forward $gccPath) } else { $null }
     Info "配置 CMake（这一步只做检查，很快）..."
-    & cmake -S $srcDir -B $buildDir -G "MinGW Makefiles" `
-        "-DCMAKE_MAKE_PROGRAM=$makeFwd" `
-        "-DCMAKE_C_COMPILER=$gppFwd" `
-        "-DCMAKE_CXX_COMPILER=$gppFwd" `
-        -DCMAKE_BUILD_TYPE=Release `
-        -DBUILD_SHARED_LIBS=ON `
-        -DBUILD_opencv_world=ON `
-        -DBUILD_EXAMPLES=OFF `
-        -DBUILD_TESTS=OFF `
-        -DBUILD_PERF_TESTS=OFF `
-        -DBUILD_opencv_python2=OFF `
-        -DBUILD_opencv_python3=OFF `
-        -DWITH_FFMPEG=OFF `
-        -DWITH_OPENCL=OFF `
-        "-DBUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,flann,features2d,calib3d,objdetect,photo" `
+    $cmakeCfgArgs = @(
+        "-S", $srcDir, "-B", $buildDir, "-G", "MinGW Makefiles",
+        "-DCMAKE_MAKE_PROGRAM=$makeFwd",
+        $cArg,
+        "-DCMAKE_CXX_COMPILER=$gppFwd",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DBUILD_SHARED_LIBS=ON",
+        "-DBUILD_opencv_world=ON",
+        "-DBUILD_EXAMPLES=OFF",
+        "-DBUILD_TESTS=OFF",
+        "-DBUILD_PERF_TESTS=OFF",
+        "-DBUILD_opencv_python2=OFF",
+        "-DBUILD_opencv_python3=OFF",
+        "-DWITH_FFMPEG=OFF",
+        "-DWITH_OPENCL=OFF",
+        "-DBUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,flann,features2d,calib3d,objdetect,photo",
         "-DCMAKE_INSTALL_PREFIX=$installPrefix"
+    )
+    & cmake @cmakeCfgArgs
+    if ($LASTEXITCODE -ne 0) {
+        Warn "首次配置失败，清理 build_mingw 后重试一次（可能是上次残留的坏配置）..."
+        Remove-Item $buildDir -Recurse -Force -ErrorAction SilentlyContinue
+        & cmake @cmakeCfgArgs
+    }
     if ($LASTEXITCODE -ne 0) { Err "CMake 配置失败"; Pause-IfNeeded; exit 1 }
 
     # 编译
