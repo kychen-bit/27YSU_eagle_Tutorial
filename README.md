@@ -338,6 +338,38 @@ build\03_camera.exe               # 打开摄像头实时画面，按 q 退出
 - **02**：应在项目根目录生成 `result_gray.png`（灰色版测试图）。
 - **03**：应弹出摄像头画面窗口（需要电脑有摄像头/USB 摄像头），按 `q` 退出。
 
+### 6.4 写你自己的第一个程序（超级简单）
+
+这个仓库本身就是一个**可开发的工程模板**，你不用新建任何东西，直接在 `src/` 里加文件就行：
+
+1. 在 `src/` 文件夹里**新建一个 `.cpp` 文件**，比如 `src/my_first.cpp`
+   （可以复制 `01_display_image.cpp` 改，也可以照下面抄）：
+   ```cpp
+   #include <opencv2/opencv.hpp>
+   #include <iostream>
+   int main()
+   {
+       cv::Mat img = cv::imread("images/test_image.png");
+       if (img.empty()) { std::cout << "没读到图" << std::endl; return -1; }
+       cv::imshow("我的第一个程序", img);
+       cv::waitKey(0);
+       return 0;
+   }
+   ```
+2. 按 `Ctrl+Shift+B` 编译（会自动重新配置）
+3. 在终端运行：`.\build\my_first.exe`
+
+> ✅ `CMakeLists.txt` 会**自动发现 `src/` 下所有 `.cpp`**，每个编译成同名 exe，
+> 你**完全不需要改 CMakeLists**。删掉文件再编译，对应的 exe 也会消失。
+
+**代码放哪、产物放哪：**
+| 内容 | 位置 |
+|---|---|
+| 你的源码（.cpp） | `src/` |
+| 图片素材 | `images/`（`imread` 用相对路径 `images/xx.png`） |
+| 编译产物（exe/dll） | `build/`（不用管，也不要提交到 git） |
+| 程序输出的文件 | 项目根目录（如 `result_xx.png`） |
+
 ---
 
 ## 7. 第五步：VS Code 日常使用

@@ -36,16 +36,19 @@ message(STATUS "OpenCV version : ${OpenCV_VERSION}")
 message(STATUS "OpenCV include : ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "OpenCV libs    : ${OpenCV_LIBS}")
 
-# ---- 三个示例可执行程序 ----
-add_executable(01_display_image src/01_display_image.cpp)
-add_executable(02_grayscale      src/02_grayscale.cpp)
-add_executable(03_camera         src/03_camera.cpp)
-
-# ---- 给每个示例链接 OpenCV ----
-foreach(tgt 01_display_image 02_grayscale 03_camera)
-    target_link_libraries(${tgt} PRIVATE ${OpenCV_LIBS})
-    target_include_directories(${tgt} PRIVATE ${OpenCV_INCLUDE_DIRS})
+# ---- 自动发现 src/ 下所有 .cpp，每个编成一个同名 exe ----
+# 新手友好：只要把 .cpp 放进 src/，Ctrl+Shift+B 就会自动编译成同名 exe，
+# 不用手动改任何配置。
+file(GLOB APP_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
+set(APP_TARGETS "")
+foreach(src ${APP_SOURCES})
+    get_filename_component(name ${src} NAME_WE)
+    add_executable(${name} ${src})
+    target_link_libraries(${name} PRIVATE ${OpenCV_LIBS})
+    target_include_directories(${name} PRIVATE ${OpenCV_INCLUDE_DIRS})
+    list(APPEND APP_TARGETS ${name})
 endforeach()
+message(STATUS "发现的源码文件: ${APP_SOURCES}")
 
 # ============================================================
 # 新手省心一步：把运行需要的 DLL 自动复制到 exe 旁边
@@ -75,20 +78,30 @@ endforeach()
 get_filename_component(_opencv_dll_dir "${_opencv_dll_dir}" ABSOLUTE)
 message(STATUS "OpenCV DLL 目录: ${_opencv_dll_dir}")
 
-# MinGW 运行时 DLL（g++ 编译的程序都需要这三兄弟）
-set(_mingw_bin "C:/mingw64/bin")
+# MinGW 运行时 DLL（g++ 编译的程序通常需要这三兄弟）
+# 关键：不写死路径，按实际编译器所在目录找（不同机器 MinGW 位置不同，
+# 比如别人的可能装在 D:\MinGW）
+get_filename_component(_mingw_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
 set(_mingw_runtime_dlls
     "${_mingw_bin}/libgcc_s_seh-1.dll"
     "${_mingw_bin}/libstdc++-6.dll"
     "${_mingw_bin}/libwinpthread-1.dll"
 )
 
-foreach(tgt 01_display_image 02_grayscale 03_camera)
+# 每个程序编译完，自动把 OpenCV 的 DLL 和存在的 MinGW 运行时 DLL 复制到 exe 旁边
+foreach(tgt ${APP_TARGETS})
     add_custom_command(TARGET ${tgt} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 "${_opencv_dll_dir}" "$<TARGET_FILE_DIR:${tgt}>"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${_mingw_runtime_dlls} "$<TARGET_FILE_DIR:${tgt}>"
-        COMMENT "复制 OpenCV/MinGW DLL 到 exe 旁边..."
+        COMMENT "复制 OpenCV DLL 到 exe 旁边..."
     )
+    foreach(_dll ${_mingw_runtime_dlls})
+        if(EXISTS "${_dll}")
+            add_custom_command(TARGET ${tgt} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${_dll}" "$<TARGET_FILE_DIR:${tgt}>"
+                COMMENT "复制运行时 DLL: ${_dll}"
+            )
+        endif()
+    endforeach()
 endforeach()
