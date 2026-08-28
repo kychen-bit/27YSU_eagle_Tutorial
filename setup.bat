@@ -1,9 +1,10 @@
 @echo off
 chcp 65001 >nul
-title OpenCV + C++ 一键环境配置
+title OpenCV + C++ One-click Setup
 echo.
-echo   即将开始配置 OpenCV + C++ (MinGW) 开发环境...
-echo   请全程保持网络连接，不要关闭本窗口。
+echo   This script sets up OpenCV + C++ (MinGW) automatically.
+echo   Keep this window open and stay online.
+echo   First run may take 30-60 minutes (compiling OpenCV).
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup.ps1"
 if errorlevel 1 pause

@@ -237,23 +237,45 @@ if ($candidate) {
         if (-not (Test-Path $zip)) {
             Info "下载 OpenCV $OpenCV_VER 源码（约 100MB）..."
             $curl = Find-Exe "curl"
-            if ($curl) {
-                & $curl -L --fail -o $zip $OpenCV_TAG_URL
-            } else {
-                Invoke-WebRequest -Uri $OpenCV_TAG_URL -OutFile $zip
+            # 依次尝试：GitHub 官方 → Gitee 镜像（国内更快/更稳）
+            $urls = @(
+                $OpenCV_TAG_URL,
+                "https://gitee.com/mirrors/opencv/archive/refs/tags/$OpenCV_VER.zip",
+                "https://gitee.com/mirrors/opencv/repository/archive/$OpenCV_VER.zip"
+            )
+            $ok = $false
+            foreach ($u in $urls) {
+                Info "尝试下载: $u"
+                try {
+                    if ($curl) {
+                        & $curl -L --fail --connect-timeout 15 -o $zip $u
+                        if ($LASTEXITCODE -eq 0 -and (Test-Path $zip)) { $ok = $true; break }
+                    } else {
+                        Invoke-WebRequest -Uri $u -OutFile $zip -TimeoutSec 600
+                        if (Test-Path $zip) { $ok = $true; break }
+                    }
+                } catch {
+                    Warn "下载失败: $($_.Exception.Message)"
+                    Remove-Item $zip -Force -ErrorAction SilentlyContinue
+                }
             }
-            if ($LASTEXITCODE -ne 0 -or -not (Test-Path $zip)) {
-                Err "源码下载失败，请检查网络后重试，或手动下载:"
-                Err "  $OpenCV_TAG_URL"
-                Err "  解压后把内容放进: $srcDir"
+            if (-not $ok) {
+                Err "源码下载失败，请检查网络后重试，或手动下载后放进:"
+                Err "  $srcDir （需包含 CMakeLists.txt）"
                 Pause-IfNeeded; exit 1
             }
         }
         Info "解压源码..."
-        Expand-Archive -Path $zip -DestinationPath $srcRoot -Force
+        try {
+            Expand-Archive -Path $zip -DestinationPath $srcRoot -Force
+        } catch {
+            Err "解压失败，可能下载不完整。请删除 $zip 后重新运行脚本。"
+            Pause-IfNeeded; exit 1
+        }
         # 解压出来是 opencv-4.13.0/，改成 sources/
         $extracted = Join-Path $srcRoot "opencv-$OpenCV_VER"
-        if (Test-Path $extracted -and -not (Test-Path $srcDir)) {
+        # 注意：cmdlet 后直接跟 -and 在旧版 PowerShell 会报"找不到参数 and"，务必加括号
+        if ((Test-Path $extracted) -and (-not (Test-Path $srcDir))) {
             Move-Item $extracted $srcDir
         }
     }

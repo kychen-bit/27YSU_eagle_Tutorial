@@ -393,36 +393,64 @@ cmake --build build -j 8
 
 ## 9. 常见问题 FAQ
 
-**Q1：运行 exe 报"找不到 opencv_world413.dll"**
+> 💡 以下 **Q0~Q2 是"全新电脑第一次跑脚本"最容易遇到的 3 个坑**，都是历史踩坑后已修复的。
+> 如果你 clone 的仓库是**旧版**，请先更新到最新再试。
+
+**Q0：双击 setup.bat 弹出一堆乱码 / "×× 不是内部或外部命令，也不是可运行的程序"**
+现象：窗口里出现 `'疆'不是内部或外部命令`、`'++'不是内部或外部命令` 等乱码报错。
+原因：旧版 `setup.bat` 里带中文，而 cmd 用系统 ANSI 码页（中文 Windows = GBK）解析批处理文件，
+      UTF-8 的中文被读成乱码后，命令被切断导致报错。
+解决：
+- ✅ 新版脚本已把 `setup.bat` 改成**纯英文**，任何系统都不会再乱码，直接更新仓库重下即可；
+- 若你手上还是旧版：把 `setup.bat` 里的中文提示全删掉（只保留 ASCII），或用 VS Code 以 **GBK 编码**另存。
+
+**Q1：报错"找不到与参数名称 and 匹配的参数"**
+现象：跑到"解压源码…"后报 `setup.ps1：找不到与参数名称"and"匹配的参数`。
+原因：旧版脚本有一行 `Test-Path xxx -and -not (...) `——在 **Windows PowerShell 5.1** 里，
+      cmdlet 后面直接跟 `-and` 会被当成参数名解析而报错。这行只在"本机没有现成 OpenCV、
+      需要解压源码"时才会执行，所以有环境的机器测不出来。
+解决：
+- ✅ 新版已改为 `(Test-Path xxx) -and (-not (...))`（加括号），已修复，更新仓库即可；
+- 遇到时也可把源码手动放进 `C:\dev\opencv\opencv\sources`（含 `CMakeLists.txt`），脚本会自动复用跳过下载解压。
+
+**Q2：下载 OpenCV 源码失败 / 卡住 / 超时（国内网络常见）**
+现象：卡在"下载 OpenCV 4.13.0 源码"很久，或提示下载失败。
+原因：脚本默认从 **GitHub** 下载约 100MB 源码，国内网络访问 GitHub 经常很慢或超时。
+解决：
+- ✅ 新版脚本会**自动依次尝试**：GitHub 官方 → **Gitee 镜像**（国内快）→ Gitee 备用格式，一般能自动成功；
+- 若仍失败：手动到 `https://gitee.com/mirrors/opencv` 下载 4.13.0 的 zip，
+  解压后把内容放进 `C:\dev\opencv\opencv\sources`（要包含 `CMakeLists.txt`），再重跑脚本。
+
+**Q3：运行 exe 报"找不到 opencv_world413.dll"**
 原因：exe 找不到动态库。
 解决：
 - 本仓库的 CMakeLists 会自动把 DLL 复制到 exe 旁边，若还报错，手动把
   `install\x64\mingw\bin\*.dll` 复制到 `build\` 下；
 - 或临时加 PATH：`set PATH=C:\dev\opencv\opencv\build_mingw\install\x64\mingw\bin;%PATH%` 再运行。
 
-**Q2：用官方预编译 OpenCV + MinGW 报一堆链接错误**
+**Q4：用官方预编译 OpenCV + MinGW 报一堆链接错误**
 原因：官方预编译是 MSVC 版，ABI 不兼容 MinGW。
 解决：用本教程"源码编译"方式生成 MinGW 版；或改用 Visual Studio（MSVC）。
 
-**Q3：`g++` 不是内部或外部命令**
+**Q5：`g++` 不是内部或外部命令**
 原因：MinGW 的 `bin` 没加进 PATH，或没重开终端。
 解决：检查环境变量 `Path`，重开终端。
 
-**Q4：摄像头打不开（`无法打开摄像头`）**
+**Q6：摄像头打不开（`无法打开摄像头`）**
 可能原因：
 - 摄像头被其他软件（微信/Teams）占用 → 关掉再试；
 - 设备号不是 0 → 把代码里的 `VideoCapture(0)` 改成 `1` 或 `2`；
 - 笔记本需在系统设置里允许应用使用摄像头。
 
-**Q5：终端中文乱码**
+**Q7：终端中文乱码**
 Windows 控制台默认 GBK。两种办法：
 - 在 VS Code 里运行（VS Code 终端默认 UTF-8）；
 - 或在控制台执行 `chcp 65001` 切到 UTF-8。
 
-**Q6：每次改 OpenCV 都要重新编译吗？**
+**Q8：每次改 OpenCV 都要重新编译吗？**
 不用。OpenCV 编译一次即可，之后你的示例项目只是**链接**它。
 
-**Q7：编译很慢怎么办？**
+**Q9：编译很慢怎么办？**
 - 用 `-j` 加大并行数（CPU 核数）；
 - 缩小 `BUILD_LIST`（只留需要的模块）；
 - 只编译一次，之后就快了。
