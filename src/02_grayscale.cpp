@@ -9,9 +9,12 @@
 // ============================================================
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include "console_utf8.h"       // 修复 Windows 控制台中文乱码
 
 int main(int argc, char** argv)
 {
+    enable_utf8_console();      // 切控制台到 UTF-8，中文不乱码
+
     std::string path = (argc >= 2) ? argv[1] : "images/test_image.png";
     cv::Mat color = cv::imread(path, cv::IMREAD_COLOR);
     if (color.empty())
@@ -31,10 +34,11 @@ int main(int argc, char** argv)
     else
         std::cerr << "[错误] 保存失败" << std::endl;
 
-    // 并排显示原图与灰度图，方便对比
-    cv::imshow("原图", color);
-    cv::imshow("灰度图", gray);
-    std::cout << "按任意键关闭窗口..." << std::endl;
+    // 并排显示原图与灰度图，方便对比（窗口标题用英文，中文标题在 Windows 上会乱码）
+    cv::imshow("Original", color);
+    cv::imshow("Grayscale", gray);
+    // 先点击图片窗口使其获得焦点，再按任意键关闭（waitKey 只接收图片窗口的按键）
+    std::cout << "请先点击图片窗口使其获得焦点，再按任意键关闭..." << std::endl;
     cv::waitKey(0);
     cv::destroyAllWindows();
     return 0;

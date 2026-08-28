@@ -2,12 +2,21 @@
 # OpenCV + VS Code 入门示例项目 —— CMake 构建脚本
 # ------------------------------------------------------------
 # 用法（在项目根目录执行，或直接用 VS Code 的 Ctrl+Shift+B）:
-#   1) 配置:  cmake -S . -B build -G "MinGW Makefiles" ^
-#                -DCMAKE_MAKE_PROGRAM=C:/mingw64/bin/mingw32-make.exe ^
+#   1) 配置:  cmake -S . -B build -G Ninja ^
+#                -DCMAKE_MAKE_PROGRAM=<你的项目绝对路径>/tools/ninja.exe ^
+#                -DCMAKE_CXX_COMPILER=C:/mingw64/bin/g++.exe ^
 #                -DCMAKE_BUILD_TYPE=Release ^
-#                -DOpenCV_DIR=C:/dev/opencv/opencv/build_mingw/install
+#                -DOpenCV_DIR=C:/dev/opencv/opencv/build_mingw/install/x64/mingw/lib
 #   2) 编译:  cmake --build build -j
 #   3) 运行:  build/01_display_image.exe
+#
+# ⚠️ 两个必踩的坑：
+#   1) 千万别"裸跑 cmake .."：Windows 上 CMake 默认会用 Visual Studio 生成器，
+#      而我们这份 OpenCV 是 MinGW 编的，VS 找不到它就会报错。
+#      删过 build/ 之后，一定要用上面 1) 的完整命令（或直接用 Ctrl+Shift+B）。
+#   2) -DCMAKE_MAKE_PROGRAM 必须写【绝对路径】（cmake 在 build/ 目录里执行 ninja，
+#      相对路径 tools/ninja.exe 会找不到）。另外在 PowerShell 5.1 里 -D 的值要加引号
+#      （如 '-DCMAKE_MAKE_PROGRAM=...'），否则 tools/ninja.exe 会被拆成 tools/ninja+.exe 报错。
 # ============================================================
 
 cmake_minimum_required(VERSION 3.16)
@@ -16,6 +25,14 @@ project(OpenCV_Examples CXX)
 # ---- C++ 标准（OpenCV 4.x 需要 C++11+，这里用 17 更现代）----
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ---- 源码统一按 UTF-8 处理（避免中文乱码）----
+# g++ 默认就把字符串存成 UTF-8；这两行再强制"读源码=UTF-8、写进 exe=UTF-8"，
+# 保证任何电脑 / 任何 g++ 版本下，控制台中文输出都不乱码。
+# （只对 GCC/Clang 生效；本项目用 MinGW g++，MSVC 不受影响）
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
+endif()
 
 # ---- 关闭调试版/发布版符号混淆的默认行为（新手不用改）----
 if(NOT CMAKE_BUILD_TYPE)
@@ -88,20 +105,32 @@ set(_mingw_runtime_dlls
     "${_mingw_bin}/libwinpthread-1.dll"
 )
 
-# 每个程序编译完，自动把 OpenCV 的 DLL 和存在的 MinGW 运行时 DLL 复制到 exe 旁边
+# ============================================================
+# 只用 ONE 个独立 target 复制 DLL（copy_runtime_dlls），
+# 所有 exe 都依赖它 —— 而不是每个 exe 的 POST_BUILD 各自复制。
+# 原因（踩坑记录）：
+#   1) cmake --build -j 并行编译时，多个 POST_BUILD 同时往同一个
+#      build/ 目录复制同一批 DLL 会"撞车"（copy_if_different 报
+#      Error copying file），串行编译测不出来。
+#   2) copy_directory 会把 opencv_annotation.exe 等 OpenCV 自带
+#      工具也复制进来，把 build 目录弄乱。
+# 所以改成：只复制明确需要的 DLL 文件（OpenCV world DLL + MinGW 三件套）。
+# ============================================================
+set(_all_runtime_dlls "${_opencv_dll_dir}/libopencv_world${OpenCV_VERSION_MAJOR}${OpenCV_VERSION_MINOR}${OpenCV_VERSION_PATCH}.dll")
+foreach(_dll ${_mingw_runtime_dlls})
+    if(EXISTS "${_dll}")
+        list(APPEND _all_runtime_dlls "${_dll}")
+    endif()
+endforeach()
+
+add_custom_target(copy_runtime_dlls ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${_all_runtime_dlls}
+            ${CMAKE_BINARY_DIR}
+    COMMENT "复制运行时 DLL（OpenCV + MinGW）到 build/ ..."
+    DEPENDS ${_all_runtime_dlls}
+)
+# 每个 exe 都等 DLL 复制完再链接，保证依赖顺序（也顺带解决并行撞车）
 foreach(tgt ${APP_TARGETS})
-    add_custom_command(TARGET ${tgt} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${_opencv_dll_dir}" "$<TARGET_FILE_DIR:${tgt}>"
-        COMMENT "复制 OpenCV DLL 到 exe 旁边..."
-    )
-    foreach(_dll ${_mingw_runtime_dlls})
-        if(EXISTS "${_dll}")
-            add_custom_command(TARGET ${tgt} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${_dll}" "$<TARGET_FILE_DIR:${tgt}>"
-                COMMENT "复制运行时 DLL: ${_dll}"
-            )
-        endif()
-    endforeach()
+    add_dependencies(${tgt} copy_runtime_dlls)
 endforeach()

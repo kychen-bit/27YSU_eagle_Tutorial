@@ -31,6 +31,34 @@
                 }
             ],
             "preLaunchTask": "cmake-build"
+        },
+        {
+            // 带命令行参数调试：把 args 里填上参数即可，
+            // 比如让 01 显示你自己的一张图、让 03 用 1 号摄像头
+            "name": "调试（带命令行参数）",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/01_display_image.exe",
+            "args": ["images/test_image.png"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "C:/dev/opencv/opencv/build_mingw/install/x64/mingw/bin;C:/mingw64/bin;${env:PATH}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "启用 gdb 美化打印（看 cv::Mat 更直观）",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "cmake-build"
         }
     ]
 }

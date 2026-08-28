@@ -10,15 +10,19 @@
 适合：电脑上**什么都没有、只装了 VS Code** 的纯新手。照着做，最快 5~15 分钟就能跑起来。
 
 **第 0 步：装 VS Code 和 C/C++ 插件（只做一次）**
-1. 下载安装 VS Code：<https://code.visualstudio.com>
+
+1. 下载安装 VS Code：[https://code.visualstudio.com](https://code.visualstudio.com)
 2. 打开 VS Code → 左侧「扩展」图标 → 搜索 `C/C++` → 安装（作者 **Microsoft**）
 
 **第 1 步：拿到本教程的文件夹**
+
 - 方式 A：GitHub 上这个仓库点 **Code → Download ZIP**，解压
 - 方式 B（有 Git 的话）：`git clone <仓库地址>`
 
 **第 2 步：双击一键脚本 `setup.bat`**
+
 > 脚本会**全自动**做四件事，每步会打印进度：
+>
 > 1. 检测 g++ / cmake / git，缺的用 Windows 自带的 **winget** 自动安装
 > 2. 找 OpenCV（MinGW 版）：没有就自动下载 OpenCV 4.13 源码并编译安装
 >    （首次约 30~60 分钟，**只需做一次**；已有就直接复用）
@@ -27,18 +31,21 @@
 >
 > 看到 **`[OK] 示例已全部编译成功`** 就说明环境 OK 了！
 > 如果双击没反应或被拦截，也可以打开 PowerShell 手动执行：
+>
 > ```powershell
 > powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
 > ```
 
 **第 3 步：在 VS Code 里运行你的第一个程序**
+
 1. VS Code → 文件 → 打开文件夹 → 选择这个文件夹
 2. 打开 `src/01_display_image.cpp`
 3. 菜单「终端 → 新建终端」，输入：
    ```powershell
    .\build\01_display_image.exe
    ```
-   会弹出一个窗口显示测试图 → **按任意键关闭** ✅
+
+   会弹出一个窗口显示测试图 → **先点击图片窗口**（让它获得焦点），再按任意键关闭 ✅
 4. 以后写代码：`Ctrl+Shift+B` 一键编译，`F5` 调试
 
 > 💡 想弄懂"每一步到底装了什么、为什么"，往下看 **1~11 节**的手动详细版。
@@ -92,6 +99,7 @@
 ```
 
 **关键点**：
+
 - **编译**：把 C++ 源码变成机器码（`.obj`）。
 - **链接**：把目标文件和我们用到的**库**（比如 OpenCV）合并成 exe。
 - **运行**：exe 运行时还要用到一些**动态库（DLL）**，系统找不到就会报"找不到 xxx.dll"。
@@ -114,13 +122,13 @@ OpenCV 安装目录/
 
 Windows 上 OpenCV 有两种拿法：
 
-| | 官方预编译版 | 从源码编译 |
-|---|---|---|
-| 获取 | 官网下载 `opencv-xxx-windows.exe` | 下载源码，自己用 CMake 编译 |
+|            | 官方预编译版                           | 从源码编译                           |
+| ---------- | -------------------------------------- | ------------------------------------ |
+| 获取       | 官网下载 `opencv-xxx-windows.exe`    | 下载源码，自己用 CMake 编译          |
 | 配套编译器 | **只能配 MSVC（Visual Studio）** | 想配什么配什么（本教程用 MinGW g++） |
-| 难度 | 简单 | 中等（但一劳永逸，还能裁剪模块） |
-| 优点 | 下载即用 | 免费、跨编译器、可裁剪、懂原理 |
-| 缺点 | 体积大、绑定 MSVC | 首次编译 30~60 分钟 |
+| 难度       | 简单                                   | 中等（但一劳永逸，还能裁剪模块）     |
+| 优点       | 下载即用                               | 免费、跨编译器、可裁剪、懂原理       |
+| 缺点       | 体积大、绑定 MSVC                      | 首次编译 30~60 分钟                  |
 
 > ⚠️ **最常见的坑**：官网下载的预编译 OpenCV 是 **MSVC 专用**的（目录名如 `vc15/vc16`）。
 > 如果你的编译器是 **MinGW g++**，链接时会报一堆莫名其妙的错。
@@ -143,6 +151,7 @@ Windows 上 OpenCV 有两种拿法：
   ```bat
   g++ --version
   ```
+
   能看到类似 `g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0` 即成功。
 
 > 💡 如果 `g++` 找不到，说明 PATH 没配好或没重开终端。
@@ -180,13 +189,16 @@ Windows 上 OpenCV 有两种拿法：
 - 源码获取方式（二选一）：
 
 **方式 A：从 GitHub 下载源码压缩包（推荐）**
+
 ```
 https://github.com/opencv/opencv/archive/refs/tags/4.13.0.zip
 ```
+
 解压到某个目录，例如 `C:\dev\opencv\opencv\sources`
 （里面应能看到 `modules/`、`CMakeLists.txt` 等）
 
 **方式 B：git clone**
+
 ```bat
 git clone --branch 4.13.0 https://github.com/opencv/opencv.git C:\dev\opencv\opencv\sources
 ```
@@ -195,11 +207,11 @@ git clone --branch 4.13.0 https://github.com/opencv/opencv.git C:\dev\opencv\ope
 
 ### 4.2 本仓库使用的目录约定
 
-| 内容 | 路径 |
-|---|---|
-| OpenCV 源码 | `C:\dev\opencv\opencv\sources` |
-| 编译目录（产物） | `C:\dev\opencv\opencv\build_mingw` |
-| 最终安装目录 | `C:\dev\opencv\opencv\build_mingw\install` |
+| 内容             | 路径                                         |
+| ---------------- | -------------------------------------------- |
+| OpenCV 源码      | `C:\dev\opencv\opencv\sources`             |
+| 编译目录（产物） | `C:\dev\opencv\opencv\build_mingw`         |
+| 最终安装目录     | `C:\dev\opencv\opencv\build_mingw\install` |
 
 > 编译目录和安装目录**不要放进 git 仓库**（体积巨大，见 [第 10 节](#10-上传到-github-给别人用)）。
 
@@ -236,22 +248,24 @@ cmake -S C:\dev\opencv\opencv\sources ^
 
 **这些选项是什么意思**（新手挑重点看）：
 
-| 选项 | 含义 |
-|---|---|
-| `-G "MinGW Makefiles"` | 用 MinGW 的 make 来驱动编译（配合 g++） |
-| `-DCMAKE_CXX_COMPILER=g++` | 指定 C++ 编译器为 MinGW 的 g++ |
-| `-DBUILD_SHARED_LIBS=ON` | 编译成 DLL（动态库），比静态库好上手 |
-| `-DBUILD_opencv_world=ON` | 把所有模块合成**一个** `opencv_world` 库，链接时只写一个库名 |
-| `-DBUILD_LIST=core,imgproc,...` | **只编译这些模块**，大幅缩短编译时间（本仓库示例用到的） |
-| `-DWITH_FFMPEG=OFF` | 跳过 FFmpeg（本教程不需要读视频文件，摄像头用 DirectShow） |
-| `-DCMAKE_INSTALL_PREFIX=...` | 指定最终"安装"位置 |
+| 选项                              | 含义                                                                 |
+| --------------------------------- | -------------------------------------------------------------------- |
+| `-G "MinGW Makefiles"`          | 用 MinGW 的 make 来驱动编译（配合 g++）                              |
+| `-DCMAKE_CXX_COMPILER=g++`      | 指定 C++ 编译器为 MinGW 的 g++                                       |
+| `-DBUILD_SHARED_LIBS=ON`        | 编译成 DLL（动态库），比静态库好上手                                 |
+| `-DBUILD_opencv_world=ON`       | 把所有模块合成**一个** `opencv_world` 库，链接时只写一个库名 |
+| `-DBUILD_LIST=core,imgproc,...` | **只编译这些模块**，大幅缩短编译时间（本仓库示例用到的）       |
+| `-DWITH_FFMPEG=OFF`             | 跳过 FFmpeg（本教程不需要读视频文件，摄像头用 DirectShow）           |
+| `-DCMAKE_INSTALL_PREFIX=...`    | 指定最终"安装"位置                                                   |
 
 **如何确认成功**：终端最后几行应出现
+
 ```
 Configuring done
 Generating done
 Build files have been written to: C:/dev/opencv/opencv/build_mingw
 ```
+
 且 `build_mingw/` 里出现 `Makefile`、`CMakeCache.txt`。
 
 ### 5.2 编译（Build）
@@ -259,6 +273,7 @@ Build files have been written to: C:/dev/opencv/opencv/build_mingw
 ```bat
 cmake --build C:\dev\opencv\opencv\build_mingw -j 8
 ```
+
 - `-j 8` 表示 8 个任务并行（改成你 CPU 核数，如 `-j 16`）
 - 期间能看到大量 `[ xx%] Building CXX object ...` 的进度
 - **如何确认成功**：最后出现 `Built target opencv_world` 之类的字样，无 `error`。
@@ -270,6 +285,7 @@ cmake --install C:\dev\opencv\opencv\build_mingw
 ```
 
 **如何确认成功**：`install/` 下应有：
+
 ```
 install/
 ├── include/          ← 头文件
@@ -287,11 +303,32 @@ install/
 ```bat
 C:\dev\opencv\opencv\build_mingw\install\x64\mingw\bin\opencv_version.exe
 ```
+
 能打印出 `4.13.0` 就说明整套 OpenCV 编译成功 ✅
 
 ---
 
 ## 6. 第四步：编译并运行本仓库示例
+
+> 🧭 **先搞懂两套东西，别搞混（新手 80% 的困惑都在这）**：
+>
+> | 目录 | 是什么 | 在不在你的 git 仓库 | 什么时候用 |
+> |---|---|---|---|
+> | `C:\dev\opencv\opencv\sources` | **OpenCV 源码**（下载来的别人的代码） | 不在 | 只在第一次编译 OpenCV 时用（第 5 节） |
+> | `C:\dev\opencv\opencv\build_mingw` | **OpenCV 库的编译产物**（含 `install\`） | 不在 | 只在第一次编译 OpenCV 时用；编好就不用再碰 |
+> | 你的仓库根目录（有 `CMakeLists.txt`） | **你的示例项目** | ✅ 在 | 日常开发全在这 |
+> | 你仓库下的 `build\` | **你示例项目的产物**（exe/dll） | 不在（`.gitignore` 已排除） | 每次改代码在这编译 |
+>
+> ❓ **那 `cmake --build C:\dev\opencv\opencv\build_mingw -j 8` 是干嘛的？**
+> 那是**编译 OpenCV 库本身**（第 5 节），**只需做一次**，产物是 OpenCV 的 `libopencv_world4130.dll`
+> 等库文件，**不是**你的示例 exe。你日常编译示例用的命令是 `cmake --build build`（在**你项目根目录**），
+> 产物是 `build\01_display_image.exe` 等。
+>
+> ❓ **别人 clone 你的仓库后有这些文件吗？**
+> 没有。`C:\dev\opencv\...` 体积巨大（几百 MB），**不进 git 仓库**。别人拿到你仓库后，
+> 需要自己先拿到 OpenCV——方法见 [第 10.1 节](#101-给同学分发编译好的-install跳过-3060-分钟编译)：
+> 要么跑 `setup.bat` 自动编译（30~60 分钟），要么找你要一份编译好的 `install` 文件夹（约 20MB zip），
+> 再把自己电脑上的 OpenCV 路径填进第 6.2 命令和 `.vscode` 三个配置文件里。
 
 ### 6.1 克隆本仓库
 
@@ -299,46 +336,155 @@ C:\dev\opencv\opencv\build_mingw\install\x64\mingw\bin\opencv_version.exe
 git clone <你的仓库地址> opencv
 cd opencv
 ```
+
 > 也可以直接把整个文件夹下载下来用。
 
-### 6.2 配置 + 编译
+### 6.2 方法一：命令行编译（手把手 · 每条命令都标了「在哪个目录」）
+
+> 📍 **先记一条铁律**：下面所有命令都必须在**【项目根目录】**执行——就是有 `CMakeLists.txt` 的那个文件夹
+> （例如 `C:\Users\你\...\opencv`）。**不要** `cd build` 进去再敲命令。
+
+**第 1 步：配置**（只在第一次、或删过 `build/` 之后做一次；成功后会生成 `build/`）
+
+【项目根目录】执行，任选一种你终端能用的写法：
+
+写法 A —— cmd（`^` 是换行符，多行版）：
 
 ```bat
 cmake -S . -B build -G Ninja ^
-      -DCMAKE_MAKE_PROGRAM=tools/ninja.exe ^
+      -DCMAKE_MAKE_PROGRAM=<你的项目绝对路径>/tools/ninja.exe ^
       -DCMAKE_CXX_COMPILER=C:/mingw64/bin/g++.exe ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DOpenCV_DIR=C:/dev/opencv/opencv/build_mingw/install/x64/mingw/lib
-
-cmake --build build -j 8
 ```
 
-> 💡 用 **Ninja** 生成器（仓库自带 `tools/ninja.exe`）：即使路径含中文也能正常编译，
-> 比 MinGW Makefiles 更稳更快。
+写法 B —— PowerShell（**推荐**：一整行直接复制粘贴回车，最不容易出错）：
 
-**如何确认成功**：`build/` 下出现三个 exe：
+```powershell
+cmake -S . -B build -G Ninja '-DCMAKE_MAKE_PROGRAM=<你的项目绝对路径>/tools/ninja.exe' '-DCMAKE_CXX_COMPILER=C:/mingw64/bin/g++.exe' '-DCMAKE_BUILD_TYPE=Release' '-DOpenCV_DIR=C:/dev/opencv/opencv/build_mingw/install/x64/mingw/lib'
 ```
-build/01_display_image.exe
-build/02_grayscale.exe
-build/03_camera.exe
-```
-同时每个 exe 旁边自动复制了 `libopencv_world4130.dll` 和 MinGW 运行时 DLL（这是 `CMakeLists.txt` 里的 POST_BUILD 步骤干的）。
 
-### 6.3 运行示例
+> ⚠️ 这一整段是**一行命令**，直接复制粘贴回车即可。**别**自己拆成多行，也别只复制后半段
+> （多行粘贴很容易丢第一行，报"意外的标记"；详见 FAQ Q16）。
 
-在项目根目录执行（注意：图片路径默认相对 `images/`）：
+> 这些参数是什么意思（新手知道大概即可）：
+>
+> | 参数                                                | 含义                                                          |
+> | --------------------------------------------------- | ------------------------------------------------------------- |
+> | `-S . -B build`                                   | 源码在当前目录，编译产物放 `build/`                         |
+> | `-G Ninja`                                        | 用 Ninja 生成器（仓库自带 `tools/ninja.exe`，支持中文路径） |
+> | `-DCMAKE_MAKE_PROGRAM=<绝对路径>/tools/ninja.exe` | 指定构建工具 ninja（**要绝对路径**）                    |
+> | `-DCMAKE_CXX_COMPILER=C:/mingw64/bin/g++.exe`     | 指定编译器为 MinGW 的 g++                                     |
+> | `-DCMAKE_BUILD_TYPE=Release`                      | 发布版（开了优化）                                            |
+> | `-DOpenCV_DIR=.../x64/mingw/lib`                  | 告诉 CMake 到哪找 OpenCV（`OpenCVConfig.cmake` 在那里）     |
+
+**第 2 步：编译**（每次改完代码都执行这一条）
+
+【项目根目录】执行：
 
 ```bat
-build\01_display_image.exe        # 弹出窗口显示测试图，按任意键关闭
-build\02_grayscale.exe            # 生成 result_gray.png 灰度图
-build\03_camera.exe               # 打开摄像头实时画面，按 q 退出
+cmake --build build -j
 ```
 
-- **01**：应弹出一个窗口，显示一张渐变测试图，控制台打印图片尺寸。
-- **02**：应在项目根目录生成 `result_gray.png`（灰色版测试图）。
-- **03**：应弹出摄像头画面窗口（需要电脑有摄像头/USB 摄像头），按 `q` 退出。
+> ⚠️ 前提是**第 1 步配置成功过**（生成了 `build/CMakeCache.txt`）。如果报
+> `Error: could not load cache`，说明 `build/` 里没有缓存（刚克隆/刚删过 build），
+> **先回去执行第 1 步的配置命令，再回来编译**（见 FAQ Q16）。
 
-### 6.4 写你自己的第一个程序（超级简单）
+→ 产物就在你【项目根目录】的 `build\` 里：`build\01_display_image.exe`、`build\02_grayscale.exe`、`build\03_camera.exe`。
+（注意：`build` 后面**不要**跟 `C:\dev\...` 那一大串——那是编译 OpenCV 本身用的，跟你的示例无关，见 6.0 节的表格。）
+
+**第 3 步：运行**（想传命令行参数就加在 exe 后面，见 6.4）
+
+【项目根目录】执行：
+
+```bat
+build\01_display_image.exe
+build\02_grayscale.exe
+build\03_camera.exe
+```
+
+（01/02 弹出图片窗口后，先**点击图片窗口**再按任意键才能关闭，见 FAQ Q15。）
+
+**如何确认成功**：`build/` 下出现 3 个 exe，且每个 exe 旁边已自动复制
+`libopencv_world4130.dll` 和 MinGW 运行时 DLL（CMakeLists.txt 自动干的，不用手动拷贝）。
+
+> ⚠️⚠️ **两个最容易踩的坑（都是真实踩过的，别再踩）**：
+>
+> **坑 1：不要"裸跑 `cmake ..`"！** Windows 上 CMake 默认会用 **Visual Studio** 生成器
+> （终端会打印 `Building for: Visual Studio 17 2022`），而我们这份 OpenCV 是 **MinGW 编译**的，
+> VS 不兼容也找不到它，于是报错。**删过 `build/` 之后必须用上面第 1 步的完整命令**（或 `Ctrl+Shift+B`）。
+> 若曾裸跑过 `cmake ..` 失败，`build/` 里会残留 VS 缓存，导致 `Ctrl+Shift+B` 也失败——
+> 这时**把 `build/` 整个删掉**再重新配置即可。
+>
+> **坑 2：PowerShell 5.1 会把 `-D...=...exe` 的 `.exe` 拆掉。** 实测：
+> PowerShell 传 `-DCMAKE_MAKE_PROGRAM=tools/ninja.exe` 会变成 `tools/ninja` + `.exe`，
+> cmake 找不到 ninja 就报错。所以 PowerShell 里 `-D` 的值**必须加引号**（如 `'-D...=...'`）。
+> cmd 没有这个问题。
+
+### 6.3 方法二：VS Code 图形操作（新手推荐，基本不用敲命令）
+
+1. **打开项目**：VS Code → `文件` → `打开文件夹` → 选中本仓库目录（含 `CMakeLists.txt` 的那个）。
+2. **一键编译**：按 `Ctrl+Shift+B`（或菜单 `终端 → 运行生成任务…`）。
+   - 底层就是替你执行了 6.2 的"配置 + 编译"两条命令（参数写在 `.vscode/tasks.json` 里，已填好）。
+   - 第一次按，顶部会弹"选择生成任务"，选 **cmake-build** 即可；以后直接编译。
+3. **运行**：菜单 `终端 → 新建终端`，输入（想带参数就加在 exe 后面，见 6.4）：
+   ```powershell
+   .\build\01_display_image.exe
+   ```
+4. **调试**：打开 `src/01_display_image.cpp`，在代码左侧点行号**打断点**，按 `F5`。
+   - 会自动先编译，再用 gdb 启动；想调试别的示例，改 `.vscode/launch.json` 里的 exe 名。
+5. **写新代码**：往 `src/` 里放一个新 `.cpp` 文件 → 再按 `Ctrl+Shift+B` → 自动编译出同名 exe。
+
+> 智能提示（写代码时弹说明/补全）：打开任意 `src/*.cpp`，若右下角提示"选择编译器"，
+> 按 `Ctrl+Shift+P` → `C/C++: 选择 IntelliSense 配置` → 选 `Win32 (MinGW + OpenCV)`。
+> 如果没反应，检查 `.vscode/c_cpp_properties.json` 里的 `opencvInstall` 路径是否是你的。
+
+### 6.4 运行示例 & 命令行参数
+
+三个程序都支持**一个命令行参数**，一句话规律：**`exe 后面跟一个参数 = 路径或编号`**。
+
+**示例 1：读图显示**（默认显示 `images/test_image.png`；参数 = 图片路径）
+
+```bat
+build\01_display_image.exe
+build\01_display_image.exe C:\some\photo.png     REM 显示你自己的图
+```
+
+**示例 2：转灰度**（默认处理 `images/test_image.png`，输出 `result_gray.png`；参数 = 图片路径）
+
+```bat
+build\02_grayscale.exe
+build\02_grayscale.exe D:\my\color.jpg           REM 处理你自己的图
+```
+
+**示例 3：摄像头**（默认 0 号摄像头；参数 = 摄像头编号）
+
+```bat
+build\03_camera.exe
+build\03_camera.exe 1                            REM 用 1 号摄像头（如 USB 外接）
+```
+
+| 示例                     | 参数含义     | 默认值                    |
+| ------------------------ | ------------ | ------------------------- |
+| `01_display_image.exe` | 图片文件路径 | `images/test_image.png` |
+| `02_grayscale.exe`     | 图片文件路径 | `images/test_image.png` |
+| `03_camera.exe`        | 摄像头编号   | `0`                     |
+
+**在 VS Code 里想传命令行参数怎么办？**（两种方式）
+
+- **方式 A（简单）**：在 VS Code 终端直接写全：
+  ```powershell
+  .\build\01_display_image.exe images\test_image.png
+  ```
+- **方式 B（F5 调试时传参）**：`.vscode/launch.json` 里已内置一个
+  `调试（带命令行参数）` 配置，把 `args` 改成你要的参数：
+  ```json
+  "args": ["images/test_image.png"]
+  ```
+
+  然后在"运行和调试"面板（`Ctrl+Shift+D`）里选中它，按 F5。
+
+### 6.5 写你自己的第一个程序（超级简单）
 
 这个仓库本身就是一个**可开发的工程模板**，你不用新建任何东西，直接在 `src/` 里加文件就行：
 
@@ -351,7 +497,7 @@ build\03_camera.exe               # 打开摄像头实时画面，按 q 退出
    {
        cv::Mat img = cv::imread("images/test_image.png");
        if (img.empty()) { std::cout << "没读到图" << std::endl; return -1; }
-       cv::imshow("我的第一个程序", img);
+       cv::imshow("my first program", img);   // 窗口标题用英文（中文标题在 Windows 上会乱码）
        cv::waitKey(0);
        return 0;
    }
@@ -363,12 +509,13 @@ build\03_camera.exe               # 打开摄像头实时画面，按 q 退出
 > 你**完全不需要改 CMakeLists**。删掉文件再编译，对应的 exe 也会消失。
 
 **代码放哪、产物放哪：**
-| 内容 | 位置 |
-|---|---|
-| 你的源码（.cpp） | `src/` |
-| 图片素材 | `images/`（`imread` 用相对路径 `images/xx.png`） |
-| 编译产物（exe/dll） | `build/`（不用管，也不要提交到 git） |
-| 程序输出的文件 | 项目根目录（如 `result_xx.png`） |
+
+| 内容                | 位置                                                   |
+| ------------------- | ------------------------------------------------------ |
+| 你的源码（.cpp）    | `src/`                                               |
+| 图片素材            | `images/`（`imread` 用相对路径 `images/xx.png`） |
+| 编译产物（exe/dll） | `build/`（不用管，也不要提交到 git）                 |
+| 程序输出的文件      | 项目根目录（如 `result_xx.png`）                     |
 
 ---
 
@@ -397,6 +544,7 @@ VS Code → `文件` → `打开文件夹` → 选择本仓库目录（含 `CMak
 - 打开 `src/01_display_image.cpp`，在代码左侧点行号**打断点**，按 `F5`。
 - 会先自动编译，再用 gdb 启动调试，可单步、看变量。
 - 想调试别的示例：改 `.vscode/launch.json` 里 `program` 的 exe 名。
+- 想带命令行参数调试：改用 `.vscode/launch.json` 里的 `调试（带命令行参数）` 配置，改 `args`。
 
 ### 7.5 手动在终端跑
 
@@ -410,16 +558,16 @@ cmake --build build -j 8
 
 ## 8. 验证清单
 
-| 检查项 | 命令 | 预期结果 |
-|---|---|---|
-| 编译器 | `g++ --version` | 打印 MinGW g++ 版本 |
-| 构建工具 | `cmake --version` | 打印 CMake 版本 |
-| 版本管理 | `git --version` | 打印 Git 版本 |
-| OpenCV 库 | `install\x64\mingw\bin\opencv_version.exe` | 打印 `4.13.0` |
-| 示例编译 | `cmake --build build -j 8` | 生成 3 个 exe，无 error |
-| 示例 1 | `build\01_display_image.exe` | 弹窗显示测试图 |
-| 示例 2 | `build\02_grayscale.exe` | 生成 `result_gray.png` |
-| 示例 3 | `build\03_camera.exe` | 摄像头画面，按 q 退出 |
+| 检查项    | 命令                                         | 预期结果                 |
+| --------- | -------------------------------------------- | ------------------------ |
+| 编译器    | `g++ --version`                            | 打印 MinGW g++ 版本      |
+| 构建工具  | `cmake --version`                          | 打印 CMake 版本          |
+| 版本管理  | `git --version`                            | 打印 Git 版本            |
+| OpenCV 库 | `install\x64\mingw\bin\opencv_version.exe` | 打印 `4.13.0`          |
+| 示例编译  | `cmake --build build -j 8`                 | 生成 3 个 exe，无 error  |
+| 示例 1    | `build\01_display_image.exe`               | 弹窗显示测试图           |
+| 示例 2    | `build\02_grayscale.exe`                   | 生成 `result_gray.png` |
+| 示例 3    | `build\03_camera.exe`                      | 摄像头画面，按 q 退出    |
 
 ---
 
@@ -433,6 +581,7 @@ cmake --build build -j 8
 原因：旧版 `setup.bat` 里带中文，而 cmd 用系统 ANSI 码页（中文 Windows = GBK）解析批处理文件，
       UTF-8 的中文被读成乱码后，命令被切断导致报错。
 解决：
+
 - ✅ 新版脚本已把 `setup.bat` 改成**纯英文**，任何系统都不会再乱码，直接更新仓库重下即可；
 - 若你手上还是旧版：把 `setup.bat` 里的中文提示全删掉（只保留 ASCII），或用 VS Code 以 **GBK 编码**另存。
 
@@ -442,6 +591,7 @@ cmake --build build -j 8
       cmdlet 后面直接跟 `-and` 会被当成参数名解析而报错。这行只在"本机没有现成 OpenCV、
       需要解压源码"时才会执行，所以有环境的机器测不出来。
 解决：
+
 - ✅ 新版已改为 `(Test-Path xxx) -and (-not (...))`（加括号），已修复，更新仓库即可；
 - 遇到时也可把源码手动放进 `C:\dev\opencv\opencv\sources`（含 `CMakeLists.txt`），脚本会自动复用跳过下载解压。
 
@@ -449,6 +599,7 @@ cmake --build build -j 8
 现象：卡在"下载 OpenCV 4.13.0 源码"很久，或提示下载失败。
 原因：源码约 100MB，默认从 **GitHub** 下载，国内网络访问 GitHub 经常很慢或超时。
 解决：
+
 - ✅ 新版脚本会**自动依次尝试**：GitHub 官方 zip → GitHub 直连 → `git clone`，一般能成功；
 - 若仍失败（脚本会打印详细提示），三选一：
   1) 浏览器打开 `https://github.com/opencv/opencv/archive/refs/tags/4.13.0.zip` 手动下载，
@@ -462,6 +613,7 @@ cmake --build build -j 8
 现象：`setup.bat` 能跑，但最后编译示例时报上面的错（配置阶段可能正常）。
 原因：CMake 的 **MinGW Makefiles** 生成器**不支持非 ASCII 路径**，生成的 Makefile 里中文路径会编码错乱。
 解决：
+
 - ✅ 新版仓库**自带 `tools/ninja.exe`**，脚本检测到中文路径会自动改用 **Ninja 生成器**，已修复，直接更新仓库重下即可；
 - 也可把整个项目移到**纯英文路径**（如 `C:\opencv`）再跑；
 - 手动用 Ninja 编译：`cmake -S . -B build -G Ninja -DCMAKE_MAKE_PROGRAM=tools/ninja.exe ...`。
@@ -469,6 +621,7 @@ cmake --build build -j 8
 **Q4：运行 exe 报"找不到 opencv_world413.dll"**
 原因：exe 找不到动态库。
 解决：
+
 - 本仓库的 CMakeLists 会自动把 DLL 复制到 exe 旁边，若还报错，手动把
   `install\x64\mingw\bin\*.dll` 复制到 `build\` 下；
 - 或临时加 PATH：`set PATH=C:\dev\opencv\opencv\build_mingw\install\x64\mingw\bin;%PATH%` 再运行。
@@ -484,19 +637,23 @@ cmake --build build -j 8
       必须换成 **posix 线程模型**的 MinGW-w64。
       次要原因：用了不匹配的 OpenCV（MSVC 版/别的编译器编的/损坏）、或编译器太旧（gcc 4/5/6）。
 检查方法：
+
 ```bat
 g++ -v
 ```
+
 看 `Thread model:` 是 `posix`（✅ 能用）还是 `win32`（❌ 必须换）。
 解决（**路线 A，推荐，根治**）：
+
 - 换成 posix 线程模型、较新的 MinGW-w64（如 `x86_64-8.1.0-release-posix-seh-rt_v6-rev0`，
   或 winlibs 的 POSIX UCRT 版）；
 - 换编译器后，**之前用旧编译器编的 OpenCV install 不要再直接复用**（ABI 可能不匹配），
   建议让脚本从源码重新编译一份（回车不填 install 路径即可，30~60 分钟）；
 - ✅ 新版脚本会自动识别：检测到 win32 线程模型/太旧的编译器会明确提示，
   并尝试用 winget 自动装 posix 版 MinGW-w64；找到的 OpenCV 也会先**自检**再使用。
-解决（**路线 B，不推荐**）：保留 win32 线程 MinGW，把 OpenCV 降到 **3.4.x**（早期版本不依赖
+  解决（**路线 B，不推荐**）：保留 win32 线程 MinGW，把 OpenCV 降到 **3.4.x**（早期版本不依赖
   `std::recursive_mutex`）。缺点：新 API/部分算法/相机模块缺失，能用但落后。
+
 > ⚠️ 别浪费时间：在 cpp 里 `#include <mutex>`、加 `-pthread`、改 `-std`、改 tasks.json、
 > 反复清理 build——这些对 win32 线程模型**都没用**，问题在编译器本身。
 
@@ -510,22 +667,91 @@ g++ -v
 
 **Q8：摄像头打不开（`无法打开摄像头`）**
 可能原因：
+
 - 摄像头被其他软件（微信/Teams）占用 → 关掉再试；
 - 设备号不是 0 → 把代码里的 `VideoCapture(0)` 改成 `1` 或 `2`；
 - 笔记本需在系统设置里允许应用使用摄像头。
 
-**Q9：终端中文乱码**
-Windows 控制台默认 GBK。两种办法：
-- 在 VS Code 里运行（VS Code 终端默认 UTF-8）；
-- 或在控制台执行 `chcp 65001` 切到 UTF-8。
+**Q9：终端中文乱码（控制台文字）**
+现象：程序里 `cout`/`printf` 输出的中文变成 `鎴愬姛`、`涓枃` 之类。
+原因：源码是 UTF-8，而中文 Windows 控制台默认按 GBK 解码，两边对不上。
+解决：本仓库每个示例第一行都调用了 `enable_utf8_console()`（见 `src/console_utf8.h`），
+      会自动把控制台切到 UTF-8，**正常不会再乱码**。若个别环境仍乱码：
+
+- 运行前先执行 `chcp 65001` 切到 UTF-8；
+- 或确认用的是**最新代码**：删掉 `build/` 后按第 6.2 节完整命令重新配置编译。
+
+**Q9.5：OpenCV 弹窗的【窗口标题】是乱码？**
+现象：`cv::imshow("01 - 显示图片", ...)` 的**窗口标题**显示成乱码，但控制台文字正常。
+原因：OpenCV 在 Windows 上创建窗口用的是 **ANSI 版 Windows API**（`CreateWindowA`），
+      中文标题会被按系统 GBK 码页解码，UTF-8 的中文就乱了。这是 OpenCV 对中文标题
+      的老毛病，不是你的代码问题。
+解决：窗口标题**用英文**。示例代码已全部改成英文标题（如 `"01 - display image"`、
+      `"Original"`、`"Grayscale"`、`"Camera - press q to quit"`），控制台中文不受影响。
 
 **Q10：每次改 OpenCV 都要重新编译吗？**
 不用。OpenCV 编译一次即可，之后你的示例项目只是**链接**它。
 
 **Q11：编译很慢怎么办？**
+
 - 用 `-j` 加大并行数（CPU 核数）；
 - 缩小 `BUILD_LIST`（只留需要的模块）；
 - 只编译一次，之后就快了。
+
+**Q12：删掉 build 后执行 `cmake ..` 报错 `Could not find a package configuration file provided by "OpenCV"`**
+现象：终端打印 `-- Building for: Visual Studio 17 2022`，然后 find_package 找不到 OpenCV。
+原因：Windows 上**裸跑 `cmake ..`**，CMake 默认选 **Visual Studio** 生成器；
+      而仓库用的是 **MinGW 编译的 OpenCV**（装在含 `x64/mingw` 的目录），
+      VS 不兼容也找不到它的配置，所以报错。
+解决：**不要裸跑 `cmake ..`**。删过 build 后，用第 6.2 节的完整命令配置
+      （带 `-G Ninja -DCMAKE_CXX_COMPILER -DOpenCV_DIR` 那一段），
+      或直接在 VS Code 按 `Ctrl+Shift+B`，让 tasks.json 替你配置。
+
+**Q13：PowerShell 里敲 cmake 命令报错（`-D` 被拆 / `^` 不认 / ninja 找不到）**
+现象：
+
+- 把 README 的多行命令复制进 **PowerShell**，每行报 `无法将 '-DXXX' 识别为 cmdlet…`；
+- 或 `-DCMAKE_MAKE_PROGRAM=tools/ninja.exe` 报 `Running 'tools/ninja' '--version' failed`；
+- 或 `cmake -S . -B build -G Ninja ^` 提示 `Ignoring extra path: ^`。
+  原因：
+- **`^` 是 cmd 的换行符，PowerShell 不认**（PowerShell 用反引号 `` ` ``）。多行命令贴进
+  PowerShell 后，每行被当成独立命令执行 → 报"无法识别"。
+- **PowerShell 5.1 传参 bug**：`-DXXX=tools/ninja.exe` 里的 `.exe` 会被拆成单独参数 → cmake 找不到 ninja。
+- `-DCMAKE_MAKE_PROGRAM=tools/ninja.exe` 是**相对路径**，cmake 在 `build\` 目录里执行它时找不到。
+  解决（任选）：
+- 在 **cmd** 里按第 6.2 节写法 A 敲（`^` 换行）；
+- 或在 **PowerShell** 里用第 6.2 节写法 B：`-D` 的值加引号，且 ninja 用**项目绝对路径**。
+
+**Q14：`cmake --build C:\dev\opencv\opencv\build_mingw -j 8` 是干嘛的？build 完了怎么什么都没有？**
+原因：这条命令是**编译 OpenCV 库本身**（第 5 节，只需做一次），输出是 OpenCV 的
+      `libopencv_world4130.dll` 等库文件（在 `C:\dev\opencv\opencv\build_mingw` 里），
+      **不是**你的示例 exe。你的示例 exe 要编译的是**你自己的工程**。
+解决：日常开发只敲 `cmake --build build -j`（在你【项目根目录】执行），
+      产物在 `build\01_display_image.exe` 等。那条 `C:\dev\opencv\...` 的命令**不用再碰**。
+
+**Q15：程序打印"请先点击图片窗口…"，可我在控制台狂按键盘，窗口就是关不掉？**
+原因：`cv::waitKey(0)` 监听的是**图片窗口**的按键，**不是控制台的按键**。
+      你的按键都被控制台（PowerShell）窗口吃掉了，OpenCV 图片窗口收不到。
+解决：**用鼠标先点击图片窗口**，让它成为当前窗口，再按任意键就关了。
+      示例代码的提示文字已改成"请先点击图片窗口使其获得焦点，再按任意键关闭"。
+
+**Q16：`cmake --build build -j` 报 `could not load cache` / 配置时报 `0xc0000139`（坏的 ninja）**
+现象：
+- `cmake --build build -j` 直接报 `Error: could not load cache`；
+- 或 `cmake -S . -B build -G Ninja`（**漏了 -D 参数**）报
+  `Running 'C:/msys64/mingw64/bin/ninja.exe' '--version' failed`（0xc0000139）；
+- 或把多行命令粘进 PowerShell，从第二行开始粘，报"意外的标记"。
+原因：
+- `could not load cache` = `build/` 里没有 CMake 配置缓存。**必须先"配置"再"编译"**：
+  配置成功会生成 `build/CMakeCache.txt`，编译命令（`cmake --build build`）读它才知道怎么编。
+  删过 `build/` 或刚克隆下来时，都要**先跑配置那一条**。
+- `0xc0000139` = 你机器上有个 **MSYS2 装的 ninja**（`C:\msys64\mingw64\bin\ninja.exe`）是坏的（缺 DLL）。
+  当你**漏掉 `-DCMAKE_MAKE_PROGRAM`** 时，CMake 会去 PATH 里找 ninja，正好找到这个坏的。
+- 多行命令粘贴时容易**丢第一行**，PowerShell 把后半段当独立表达式解析 → 报"意外的标记"。
+解决：
+- 用第 6.2 节**单行版**完整命令（它用 `-DCMAKE_MAKE_PROGRAM` 明确指定仓库自带的
+  `tools/ninja.exe`，不会去 PATH 找坏的 ninja，也不会丢行）。
+- 每次流程固定为：**配置（一行）→ 编译 → 运行**。
 
 ---
 
@@ -561,21 +787,25 @@ git push gitee main      # 推 Gitee
 ```
 
 **别人拿到之后**：
+
 1. 装好工具链（第 3 节）并编译好 OpenCV（第 5 节）；**或直接双击 `setup.bat` 一键搞定**；
 2. 跑一次脚本（或手动把 `.vscode/tasks.json`、`c_cpp_properties.json` 里的路径改成自己的）；
 3. 按第 6 节编译运行即可。
 
 > 💡 国内同学访问 GitHub 可能较慢，用 **Gitee 镜像**更顺。两边代码保持一致即可。
+
 ### 10.1 给同学分发编译好的 install（跳过 30~60 分钟编译）
 
 如果你已经把 OpenCV 编译好了，可以**只发一个约 54MB 的文件夹**，同学就不用等编译了。
 
 **你在自己电脑上（打包）：**
+
 1. 找到 `C:\dev\opencv\opencv\build_mingw\install`
 2. 右键 → **压缩成 zip**（压完约 20MB）
 3. 用 QQ / 微信 / 网盘 / Gitee Release 发给同学
 
 **同学拿到后（使用）：**
+
 1. 解压到任意位置，例如 `D:\opencv-install`
 2. 双击 `setup.bat`，当脚本提示
    「有没有别人给你的 OpenCV install 文件夹？有就输入它的路径」时，
@@ -585,6 +815,7 @@ git push gitee main      # 推 Gitee
 
 > ✅ 这个 install 文件夹**可以随便移动位置**（实测过：复制到别的盘、别的路径后
 > `find_package`、编译、运行都正常），因为 `OpenCVConfig.cmake` 用的是**相对路径**，不写死。
+
 ---
 
 ## 11. 仓库目录结构
@@ -611,6 +842,7 @@ opencv/
 ```
 
 **不在仓库里**（本地生成）：
+
 - `build/`：示例项目的编译产物
 - OpenCV 的 `sources/`、`build_mingw/`：体积巨大，各自在本机独立存在
 

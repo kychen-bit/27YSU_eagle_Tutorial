@@ -444,11 +444,20 @@ if ($candidateOk) {
     # "The CMAKE_C_COMPILER is set to a C++ compiler"
     $gccPath = Join-Path $gppBin "gcc.exe"
     $cArg = if (Test-Path $gccPath) { "-DCMAKE_C_COMPILER=" + (To-Forward $gccPath) } else { $null }
+    # RC 资源编译器：WinLibs 的 windres 有时默认编成 i386，链接时报
+    # "i386 architecture of input file ... is incompatible with i386:x86-64"
+    # 强制 --target=pe-x86-64，并优先用带前缀的 64 位 windres
+    $rcExe = Join-Path $gppBin "x86_64-w64-mingw32-windres.exe"
+    if (-not (Test-Path $rcExe)) { $rcExe = Join-Path $gppBin "windres.exe" }
+    $rcArg = if (Test-Path $rcExe) { "-DCMAKE_RC_COMPILER=" + (To-Forward $rcExe) } else { $null }
+    $rcFlagArg = "-DCMAKE_RC_FLAGS=--target=pe-x86-64"
     Info "配置 CMake（这一步只做检查，很快）..."
     $cmakeCfgArgs = @(
         "-S", $srcDir, "-B", $buildDir, "-G", "MinGW Makefiles",
         "-DCMAKE_MAKE_PROGRAM=$makeFwd",
         $cArg,
+        $rcArg,
+        $rcFlagArg,
         "-DCMAKE_CXX_COMPILER=$gppFwd",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DBUILD_SHARED_LIBS=ON",
